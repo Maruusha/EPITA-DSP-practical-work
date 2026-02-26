@@ -42,7 +42,7 @@ services:
       - .env
     environment:
       # Internal URL for Streamlit to talk to FastAPI
-      - API_URL=http://fastapi-service:80
+      - REP_PREDICT_API_URL=http://fastapi-service:80
     depends_on:
       - fastapi-service
       - db
