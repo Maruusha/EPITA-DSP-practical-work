@@ -2,8 +2,16 @@ import pandas as pd
 import numpy as np
 import os
 
-dataset_path = 'Energy Production Dataset.csv'     
-output_folder = 'raw_data'       
+# save incase needed
+# dataset_path = 'Energy Production Dataset.csv'     
+# output_folder = 'raw_data'       
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+dataset_path = os.path.join(base_dir, 'Energy Production Dataset.csv')
+ 
+output_folder = os.path.join(base_dir, 'raw_data')
+os.makedirs(output_folder, exist_ok=True)
+
 num_files = 10               
 
 # Load the dataset
