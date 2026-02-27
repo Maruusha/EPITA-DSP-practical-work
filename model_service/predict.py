@@ -44,7 +44,7 @@ def build_db_row(row, s_id: int, prediction: float, model_version: str) -> dict:
 
 def write_predictions(features: list, predictions: list) -> None:
     """Fetches source IDs, builds DB rows, and saves to DB."""
-    source_id_map = _fetch_source_ids(features)
+    source_id_map = fetch_source_ids(features)
     db_rows = []
 
     for row, (prediction, model_version) in zip(features, predictions):
@@ -52,7 +52,7 @@ def write_predictions(features: list, predictions: list) -> None:
         if s_id is None:
             print(f"Warning: Source '{row.energy_source}' not found in database. Skipping row.")
             continue
-        db_rows.append(_build_db_row(row, s_id, prediction, model_version))
+        db_rows.append(build_db_row(row, s_id, prediction, model_version))
 
     if db_rows:
         db_utility.save_predictions_batch(db_rows)
@@ -64,7 +64,7 @@ def process_and_log(features: list) -> list:
     gets predictions, and logs to DB.
     """
     predictions = [predict(row) for row in features]
-    #write_predictions(features, predictions)
+    write_predictions(features, predictions)
 
     return [
         {"prediction": prediction, "model_version": model_version, "received_input": row.dict()}
