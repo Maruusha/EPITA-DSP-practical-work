@@ -28,11 +28,11 @@ class PredictionRequest(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     """
-    Runs once when the container starts. 
-    Creates the tables in Postgres if they don't exist.
+    #Runs once when the container starts. 
+    #Creates the tables in Postgres if they don't exist.
     """
-    print("Initializing database tables...")
-    db_utility.Base.metadata.create_all(bind=db_utility.engine)
+    #print("Initializing database tables...")
+    #db_utility.Base.metadata.create_all(bind=db_utility.engine, checkfirst=True)
 
 # --- Endpoints ---
 
