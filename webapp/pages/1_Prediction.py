@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 from services.api_client import make_prediction
+import pandas as pd
 
 st.title("Renewable Energy Production Prediction")
 
@@ -54,5 +55,14 @@ if st.button("Predict"):
     else:
         production_value = result.get("production")
 
+        # Create dataframe combining input + output
+        result_df = pd.DataFrame([{
+            "Date": payload["date"],
+            "Start hour": payload["start_hour"],
+            "End hour": payload["end_hour"],
+            "Energy Source": payload["energy_source"],
+            "Predicted Production (in MWh)": production_value
+        }])
+
         st.success("Prediction successful!")
-        st.metric(label="Predicted Production Value in MWh", value=production_value)
+        st.dataframe(result_df, use_container_width=True)
