@@ -1,7 +1,7 @@
 services:
   # --- Database Service ---
   db:
-    image: postgres:v0.1
+    image: postgres:alpine3.22
     container_name: postgres
     # These variables are pulled from your local .env file
     environment:
