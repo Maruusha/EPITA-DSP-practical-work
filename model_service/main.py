@@ -1,17 +1,15 @@
 import sys
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Optional, Union
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
-
-# Internal imports
 import predict
 import db_utility
 
 app = FastAPI(title="Energy Production Prediction Service")
 
-# --- Pydantic Models for Input Validation ---
 
+# --- Pydantic Models ---
 class PredictionInput(BaseModel):
     """Matches the exact structure sent by Streamlit."""
     date: str           # Expected format: "YYYY-MM-DD"
@@ -19,60 +17,55 @@ class PredictionInput(BaseModel):
     end_hour: int
     energy_source: str  # e.g., "Wind", "Solar"
 
-class PredictionRequest(BaseModel):
-    """Wrapper to allow batching or single object requests."""
-    data: Union[PredictionInput, List[PredictionInput]]
 
-# --- Lifecycle Events ---
+def validate_results(results: list) -> None:
+    """Raises if no valid predictions were returned."""
+    if not results:
+        raise ValueError("No valid predictions were made. Check if energy_source exists in DB.")
 
-@app.on_event("startup")
-async def startup_event():
-    """
-    #Runs once when the container starts. 
-    #Creates the tables in Postgres if they don't exist.
-    """
-    #print("Initializing database tables...")
-    #db_utility.Base.metadata.create_all(bind=db_utility.engine, checkfirst=True)
 
-# --- Endpoints ---
+def format_prediction_response(results: list) -> dict:
+    """Formats the first prediction result for the API response."""
+    return {
+        "production": str(results[0]["prediction"]),
+        "model_version": results[0]["model_version"],
+        "received_input": results[0]["received_input"],
+        "status": "success"
+    }
 
-@app.get("/health")
-async def health():   
-    return {"status": "healthy"}
 
-@app.get("/test-db", tags=["System Checks"])
-async def test_db():
-    """Verifies that the API can talk to the Postgres container."""
+def check_db_connection() -> dict:
+    """Validates DB connection and returns appropriate response."""
     if db_utility.test_db_connection():
         return {"status": "success", "message": "Connected to PostgreSQL!"}
     raise HTTPException(status_code=500, detail="Database connection failed")
 
-@app.post("/predict")
-async def do_predict(payload: PredictionRequest):
-    """
-    Main endpoint for Streamlit. 
-    Processes input, gets model prediction, logs to DB, and returns results.
-    """
-    try:
-        # 1. Normalize input to a list of objects
-        input_list = payload.data if isinstance(payload.data, list) else [payload.data]
-        
-        # 2. Process logic (Prediction + DB Logging)
-        # Returns a list of dicts: [{"prediction": float, "model_used": str, "input": dict}, ...]
-        results = predict.process_and_log(input_list)
-        
-        if not results:
-            raise ValueError("No valid predictions were made. Check if energy_source exists in DB.")
 
-        # 3. Construct response for Streamlit (taking the first result for single calls)
-        return {
-            "prediction": str(results[0]["prediction"]),
-            "model_version": results[0]["model_version"],
-            "received_input": results[0]["received_input"],
-            "status": "success"
-        }
+def get_prediction_results(payload: List[PredictionInput]) -> dict:
+    """Runs prediction pipeline and returns formatted response."""
+    results = predict.process_and_log(payload)
+    validate_results(results)
+    return format_prediction_response(results)
+
+
+# --- Endpoints ---
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+
+@app.get("/test-db", tags=["System Checks"])
+async def test_db():
+    """Verifies that the API can talk to the Postgres container."""
+    return check_db_connection()
+
+
+@app.post("/predict")
+async def do_predict(payload: Union[PredictionInput, List[PredictionInput]]):
+    try:
+        input_list = payload if isinstance(payload, list) else [payload]
+        return get_prediction_results(input_list)
     except Exception as e:
-        # Logs the error to Docker console and returns 500 to user
         print(f"Prediction Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

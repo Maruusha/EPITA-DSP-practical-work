@@ -18,6 +18,7 @@ services:
 
   # --- FastAPI Backend Service ---
   fastapi-service:
+    image: fastapi:v0.1
     build: ./model_service
     container_name: fastapi
     ports:
@@ -32,6 +33,7 @@ services:
 
   # --- Streamlit Frontend Service ---
   streamlit-service:
+    image: streamlit:v0.1
     build: ./webapp
     container_name: streamlit
     ports:
