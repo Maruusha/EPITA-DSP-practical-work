@@ -3,7 +3,7 @@ import numpy as np
 import os
 import random
 
-dataset_path = 'raw_data'
+dataset_path = 'bad_data'
 output_folder = 'bad_data'
 num_corrupt_files = 3
 
@@ -30,6 +30,6 @@ for file_name in files:
     print(f"Applied Schema Error to {file_name}: Dropped {drop_col}")
 
     # SAVE TO BAD_DATA
-    output_path = os.path.join(output_folder, f"corrupted_{file_name}")
+    output_path = os.path.join(output_folder, f"corrupted_schema_{file_name}")
     df.to_csv(output_path, index=False)
     print(f"Processed {file_name}: Corrupted {drop_col} rows -> {output_path}")
