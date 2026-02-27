@@ -1,7 +1,7 @@
 services:
   # --- Database Service ---
   db:
-    image: postgres:alpine3.22
+    image: postgres
     container_name: postgres
     # These variables are pulled from your local .env file
     environment:
@@ -18,6 +18,7 @@ services:
 
   # --- FastAPI Backend Service ---
   fastapi-service:
+    image: fastapi
     build: ./model_service
     container_name: fastapi
     ports:
@@ -32,6 +33,7 @@ services:
 
   # --- Streamlit Frontend Service ---
   streamlit-service:
+    image: streamlit
     build: ./webapp
     container_name: streamlit
     ports:
