@@ -1,7 +1,7 @@
 import os
 import requests
 
-REP_PREDICT_API_URL = os.getenv("REP_PREDICT_API_URL", "http://localhost:8000")
+REP_PREDICT_API_URL = os.getenv("REP_PREDICT_API_URL", "http://localhost:8080")
 
 def make_prediction(payload: dict):
     try:

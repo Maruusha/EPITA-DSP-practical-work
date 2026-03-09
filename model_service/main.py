@@ -1,6 +1,6 @@
 import sys
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 import predict
@@ -18,6 +18,17 @@ class PredictionInput(BaseModel):
     energy_source: str  # e.g., "Wind", "Solar"
 
 
+class PredictionResult(BaseModel):
+    production: float
+    model_version: str
+    received_input: Dict
+
+
+class PredictionResponse(BaseModel):
+    status: str
+    predictions: List[PredictionResult]
+
+
 def validate_results(results: list) -> None:
     """Raises if no valid predictions were returned."""
     if not results:
@@ -25,12 +36,17 @@ def validate_results(results: list) -> None:
 
 
 def format_prediction_response(results: list) -> dict:
-    """Formats the first prediction result for the API response."""
+    """Formats prediction results for the API response."""
     return {
-        "production": str(results[0]["prediction"]),
-        "model_version": results[0]["model_version"],
-        "received_input": results[0]["received_input"],
-        "status": "success"
+        "status": "success",
+        "predictions": [
+            {
+                "production": r["prediction"],
+                "model_version": r["model_version"],
+                "received_input": r["received_input"],
+            }
+            for r in results
+        ]
     }
 
 
@@ -60,7 +76,7 @@ async def test_db():
     return check_db_connection()
 
 
-@app.post("/predict")
+@app.post("/predict",  response_model=PredictionResponse)
 async def do_predict(payload: Union[PredictionInput, List[PredictionInput]]):
     try:
         input_list = payload if isinstance(payload, list) else [payload]
