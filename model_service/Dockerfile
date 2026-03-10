@@ -8,6 +8,8 @@ WORKDIR /app
 # This includes main.py, predict.py, and db_utility.py, etc...
 COPY . /app
 
+RUN sed -i 's/\r$//' /app/prestart.sh && chmod +x /app/prestart.sh
+
 # Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
