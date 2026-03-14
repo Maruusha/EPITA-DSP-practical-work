@@ -32,20 +32,27 @@ class PredictionRecord(Base):
     predict_date = Column(DateTime, default=datetime.utcnow)
     ml_model = Column(String)
 
-class HistoricalData(Base):
-    """New Table for saving the entire dataset"""
-    __tablename__ = "historical_data"
+class DataQualityStat(Base):
+    __tablename__ = "data_quality_stats"
+    
+    # The Primary Key
     id = Column(Integer, primary_key=True, index=True)
-    date = Column(String, nullable=True) 
-    start_hour = Column(Integer, nullable=True)
-    end_hour = Column(Integer, nullable=True)
-    source = Column(String, nullable=True)
-    day_of_year = Column(Integer, nullable=True)
-    day_name = Column(String, nullable=True)
-    month_name = Column(String, nullable=True)
-    season = Column(String, nullable=True)
-    production = Column(Float, nullable=True)
-
+    
+    # File name column
+    file_name = Column(String, index=True)
+    
+    # Time-Series Tracking column
+    ingestion_timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    # additional info about the bad dataset
+    total_rows_processed = Column(Integer)
+    total_clean_rows = Column(Integer)
+    total_corrupt_rows = Column(Integer)
+    
+    # The detailed error columns
+    missing_values_count = Column(Integer)
+    type_error_count = Column(Integer)
+    outlier_error_count = Column(Integer)
 
 # --- Database Operations ---
 
