@@ -16,15 +16,15 @@ Base = declarative_base()
 
 # --- Table Definitions ---
 
-class DictSourceName(Base):
-    __tablename__ = "dict_source_name"
+class EnergySource(Base):
+    __tablename__ = "energy_sources"
     id = Column(Integer, primary_key=True)
     source_type = Column(String)  # Solar, Wind, Mix, etc.
 
 class PredictionRecord(Base):
     __tablename__ = "predictions"
     id = Column(Integer, primary_key=True, index=True)
-    input_source_id = Column(Integer, ForeignKey("dict_source_name.id"))
+    energy_source_id = Column(Integer, ForeignKey("energy_sources.id"))
     input_date = Column(DateTime)
     input_time_start = Column(Integer)
     input_time_end = Column(Integer)
@@ -67,7 +67,7 @@ def test_db_connection():
 def get_source_ids_by_names(names: list):
     db = SessionLocal()
     try:
-        records = db.query(DictSourceName).filter(DictSourceName.source_type.in_(names)).all()
+        records = db.query(EnergySource).filter(EnergySource.source_type.in_(names)).all()
         return {r.source_type: r.id for r in records}
     finally:
         db.close()
@@ -81,14 +81,14 @@ def save_predictions_batch(records_data: list):
     finally:
         db.close()
 
-def query_predictions(ml_model=None, input_source_id=None, start_date=None, end_date=None, limit=100):
+def query_predictions(ml_model=None, energy_source_id=None, start_date=None, end_date=None, limit=100):
     db = SessionLocal()
     try:
         query = db.query(PredictionRecord)
         if ml_model:
             query = query.filter(PredictionRecord.ml_model == ml_model)
-        if input_source_id:
-            query = query.filter(PredictionRecord.input_source_id == input_source_id)
+        if energy_source_id:
+            query = query.filter(PredictionRecord.energy_source_id == energy_source_id)
         if start_date:
             query = query.filter(PredictionRecord.predict_date >= start_date)
         if end_date:

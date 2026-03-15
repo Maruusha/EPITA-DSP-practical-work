@@ -1,5 +1,6 @@
 import db_utility
-from db_utility import DictSourceName, SessionLocal
+from db_utility import EnergySource, SessionLocal
+from sqlalchemy.dialects.postgresql import insert
 
 print("Initializing database tables...")
 db_utility.Base.metadata.create_all(bind=db_utility.engine, checkfirst=True)
@@ -10,20 +11,24 @@ print("Seeding initial dictionary data...")
 session = SessionLocal()
 
 try:
-    required_sources = ["Wind", "Solar", "Mixed"]
+    # source types that will be inserted if it doesnt exist in the table already
+    sources_to_insert = [
+        {"source_type": "Wind"},
+        {"source_type": "Solar"},
+        {"source_type": "Mixed"}
+    ]
 
-    for source in required_sources:
-        # Check if the source already exists
-        exists = session.query(DictSourceName).filter_by(source_type=source).first()
-        
-        # If it does not exist, queue it up to be saved
-        if not exists:
-            new_source = DictSourceName(source_type=source)
-            session.add(new_source)
+    # SQL alchemy upsert method used to upload the source type after checking it's existence
+    stmt = insert(EnergySource).values(sources_to_insert)
 
-    # 'Push' the queued changes permanently into PostgreSQL
+    stmt = stmt.on_conflict_do_nothing(index_elements=['source_type'])
+
+    session.execute(stmt)
     session.commit()
-    print("✅ Energy sources seeded successfully.")
+
+    print("Energy sources uploaded/verified successfully.")
+
+
 
 except Exception as e:
     # The Safety Valve: If anything crashes, undo all partial changes
