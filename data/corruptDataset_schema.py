@@ -3,8 +3,15 @@ import numpy as np
 import os
 import random
 
-dataset_path = 'bad_data'
-output_folder = 'bad_data'
+# save incase needed
+# dataset_path = 'bad_data'
+# output_folder = 'bad_data'
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+dataset_path = os.path.join(base_dir, 'bad_data')
+ 
+output_folder = os.path.join(base_dir, 'bad_data')
+os.makedirs(output_folder, exist_ok=True)
 num_corrupt_files = 3
 
 col_list = ['Date', 'Start_Hour', 'End_Hour', 'Source', 'Day_of_Year', 'Day_Name',	'Month_Name', 'Season', 'Production']
