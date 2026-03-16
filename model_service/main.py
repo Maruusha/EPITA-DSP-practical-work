@@ -16,6 +16,7 @@ class PredictionInput(BaseModel):
     start_hour: int
     end_hour: int
     energy_source: str  # e.g., "Wind", "Solar"
+    prediction_source: str = "webapp"
 
 
 class PredictionResult(BaseModel):
@@ -88,7 +89,7 @@ async def do_predict(payload: Union[PredictionInput, List[PredictionInput]]):
 @app.get("/past-predictions")
 async def get_history(
     ml_model: Optional[str] = None,
-    input_source_id: Optional[int] = None,
+    energy_source_id: Optional[int] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     limit: int = Query(100, ge=1, le=1000)
@@ -96,7 +97,7 @@ async def get_history(
     """Queries the database for historical prediction records."""
     return db_utility.query_predictions(
         ml_model=ml_model,
-        input_source_id=input_source_id,
+        energy_source_id=energy_source_id,
         start_date=start_date,
         end_date=end_date,
         limit=limit

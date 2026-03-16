@@ -32,7 +32,8 @@ def fetch_source_ids(features: list) -> dict:
 def build_db_row(row, s_id: int, prediction: float, model_version: str) -> dict:
     """Constructs a single DB row dict from a feature row and its prediction."""
     return {
-        "input_source_id": s_id,
+        "energy_source_id": s_id,
+        "prediction_source": row.prediction_source,
         "input_date": datetime.strptime(row.date, "%Y-%m-%d"),
         "input_time_start": row.start_hour,
         "input_time_end": row.end_hour,

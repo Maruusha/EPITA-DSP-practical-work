@@ -16,15 +16,16 @@ Base = declarative_base()
 
 # --- Table Definitions ---
 
-class DictSourceName(Base):
-    __tablename__ = "dict_source_name"
+class EnergySource(Base):
+    __tablename__ = "energy_sources"
     id = Column(Integer, primary_key=True)
-    source_type = Column(String)  # Solar, Wind, Mix, etc.
+    source_type = Column(String, uniques = True, nullable = False)  # Solar, Wind, Mix, etc.
 
 class PredictionRecord(Base):
     __tablename__ = "predictions"
     id = Column(Integer, primary_key=True, index=True)
-    input_source_id = Column(Integer, ForeignKey("dict_source_name.id"))
+    energy_source_id = Column(Integer, ForeignKey("energy_sources.id"))
+    prediction_source = Column(String)
     input_date = Column(DateTime)
     input_time_start = Column(Integer)
     input_time_end = Column(Integer)
@@ -32,20 +33,27 @@ class PredictionRecord(Base):
     predict_date = Column(DateTime, default=datetime.utcnow)
     ml_model = Column(String)
 
-class HistoricalData(Base):
-    """New Table for saving the entire dataset"""
-    __tablename__ = "historical_data"
+class DataQualityStat(Base):
+    __tablename__ = "data_quality_stats"
+    
+    # The Primary Key
     id = Column(Integer, primary_key=True, index=True)
-    date = Column(String, nullable=True) 
-    start_hour = Column(Integer, nullable=True)
-    end_hour = Column(Integer, nullable=True)
-    source = Column(String, nullable=True)
-    day_of_year = Column(Integer, nullable=True)
-    day_name = Column(String, nullable=True)
-    month_name = Column(String, nullable=True)
-    season = Column(String, nullable=True)
-    production = Column(Float, nullable=True)
-
+    
+    # File name column
+    file_name = Column(String, index=True)
+    
+    # Time-Series Tracking column
+    ingestion_timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    # additional info about the bad dataset
+    total_rows_processed = Column(Integer)
+    total_clean_rows = Column(Integer)
+    total_corrupt_rows = Column(Integer)
+    
+    # The detailed error columns
+    missing_values_count = Column(Integer)
+    type_error_count = Column(Integer)
+    outlier_error_count = Column(Integer)
 
 # --- Database Operations ---
 
@@ -60,7 +68,7 @@ def test_db_connection():
 def get_source_ids_by_names(names: list):
     db = SessionLocal()
     try:
-        records = db.query(DictSourceName).filter(DictSourceName.source_type.in_(names)).all()
+        records = db.query(EnergySource).filter(EnergySource.source_type.in_(names)).all()
         return {r.source_type: r.id for r in records}
     finally:
         db.close()
@@ -74,14 +82,14 @@ def save_predictions_batch(records_data: list):
     finally:
         db.close()
 
-def query_predictions(ml_model=None, input_source_id=None, start_date=None, end_date=None, limit=100):
+def query_predictions(ml_model=None, energy_source_id=None, start_date=None, end_date=None, limit=100):
     db = SessionLocal()
     try:
         query = db.query(PredictionRecord)
         if ml_model:
             query = query.filter(PredictionRecord.ml_model == ml_model)
-        if input_source_id:
-            query = query.filter(PredictionRecord.input_source_id == input_source_id)
+        if energy_source_id:
+            query = query.filter(PredictionRecord.energy_source_id == energy_source_id)
         if start_date:
             query = query.filter(PredictionRecord.predict_date >= start_date)
         if end_date:
