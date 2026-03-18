@@ -19,7 +19,7 @@ Base = declarative_base()
 class EnergySource(Base):
     __tablename__ = "energy_sources"
     id = Column(Integer, primary_key=True)
-    source_type = Column(String, uniques = True, nullable = False)  # Solar, Wind, Mix, etc.
+    source_type = Column(String, unique = True, nullable = False)  # Solar, Wind, Mix, etc.
 
 class PredictionRecord(Base):
     __tablename__ = "predictions"
