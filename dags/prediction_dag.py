@@ -4,7 +4,7 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 
-# Define the DAG to run every 2 minutes automatically
+# Set to run every 2 mins. catchup=False so it doesn't try to run 100 times on start.
 with DAG(
     dag_id="prediction_job",
     start_date=datetime(2024, 1, 1),
@@ -14,50 +14,57 @@ with DAG(
 
     @task
     def check_for_new_data():
-        # Path inside the Docker container
-        folder_path = "/opt/airflow/data/good_data/"
+        # folder where we drop the files
+        data_dir = "/opt/airflow/data/good_data/"
         
-        # Get the list of all files
-        all_files = os.listdir(folder_path)
+        # simple check to make sure the folder actually exists
+        if not os.path.exists(data_dir):
+            raise AirflowSkipException(f"Folder {data_dir} is missing.")
+
+        # find all csvs
+        files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
         
-        # Keep only CSV files
-        csv_files = []
-        for file_name in all_files:
-            if file_name.endswith(".csv"):
-                csv_files.append(file_name)
-                
-        n = len(csv_files)
-        
-        # Mark the DAG run as skipped if empty
-        if n == 0:
-            raise AirflowSkipException("No new data found. Skipping prediction.")
+        # If nothing is there, just skip the run (turns the task pink in UI)
+        if len(files) == 0:
+            raise AirflowSkipException("No new files found. Nothing to do.")
             
-        return csv_files
+        return files
 
     @task
-    def make_predictions(file_list):
-        # Move imports INSIDE the task so Airflow doesn't crash during the scan
+    def make_predictions(csv_list):
         import pandas as pd
         import requests
         
-        folder_path = "/opt/airflow/data/good_data/"
+        data_dir = "/opt/airflow/data/good_data/"
+        # Uses the container name from docker-compose
+        api_endpoint = "http://fastapi-service:80/predict"
         
-        # Updated to match the exact container name and internal port from Docker Desktop
-        api_url = "http://fastapi-service:80/predict"
-        
-        for file_name in file_list:
-            file_path = folder_path + file_name
+        for file in csv_list:
+            path = os.path.join(data_dir, file)
             
-            # Read the CSV file into a dictionary
-            df = pd.read_csv(file_path)
-            data_dict = df.to_dict(orient="records")
-            
-            # Make the API call to Duy Thai's FastAPI service
-            response = requests.post(api_url, json=data_dict)
-            
-            # Print the status so you can see it in the Airflow logs
-            print("Sent file: " + file_name + " - Status: " + str(response.status_code))
+            try:
+                # Load the data and convert to list of dicts for the API
+                df = pd.read_csv(path)
+                payload = df.to_dict(orient="records")
+                
+                # Push to FastAPI with a 10s timeout so it doesnt hang forever
+                res = requests.post(api_endpoint, json=payload, timeout=10)
+                
+                # This throws an error if the API returns 4xx or 5xx
+                res.raise_for_status()
+                
+                print(f"Worked: {file} sent. Status: {res.status_code}")
+                
+            except requests.exceptions.RequestException as err:
+                # Catches connection issues, 404s, or if the server is down
+                print(f"API Error for {file}: {err}")
+                raise
+                
+            except Exception as other_err:
+                # Catches weird stuff like empty CSVs or bad formatting
+                print(f"Failed to process {file}: {other_err}")
+                raise
 
-    # Link the tasks together to form the pipeline
-    files_to_process = check_for_new_data()
-    make_predictions(files_to_process)
+    # Flow: Check -> Predict
+    new_files = check_for_new_data()
+    make_predictions(new_files)
