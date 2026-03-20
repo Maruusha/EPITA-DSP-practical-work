@@ -84,15 +84,15 @@ def save_predictions_batch(db: Session, records_data: list):
 
 def query_predictions(db: Session, ml_model=None, prediction_source=None,energy_source_id=None, start_date=None, end_date=None, limit=100):
     query = db.query(PredictionRecord)
-    if ml_model:
+    if ml_model is not None:
         query = query.filter(PredictionRecord.ml_model == ml_model)
-    if energy_source_id:
+    if energy_source_id is not None:
         query = query.filter(PredictionRecord.energy_source_id == energy_source_id)
-    if prediction_source:
+    if prediction_source is not None:
         query = query.filter(PredictionRecord.prediction_source == prediction_source)
-    if start_date:
+    if start_date is not None:
         query = query.filter(PredictionRecord.predict_date >= start_date)
-    if end_date:
+    if end_date is not None:
         query = query.filter(PredictionRecord.predict_date <= end_date)
     
     return query.order_by(PredictionRecord.predict_date.desc()).limit(limit).all()

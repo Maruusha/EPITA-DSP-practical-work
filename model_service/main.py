@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 
 # Initialize app using the lifespan
 app = FastAPI(
-    title="Energy Production Prediction Service",
+    title="Renewable Energy Production Prediction Service",
     lifespan=lifespan
 )
 
@@ -152,7 +152,7 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
 async def get_history(
     request: Request,
     ml_model: Optional[str] = None,
-    energy_source_name: Optional[str] = None,
+    energy_source: Optional[str] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     prediction_source: Optional[str] = None,
