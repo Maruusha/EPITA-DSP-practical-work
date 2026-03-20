@@ -57,8 +57,8 @@ if "batch_result_df" not in st.session_state:
 if "last_uploaded_file" not in st.session_state:
     st.session_state["last_uploaded_file"] = None
 
+# Safely clear batch prediction results
 def clear_batch_results():
-    """Safely clear batch prediction results."""
     if "batch_result_df" in st.session_state:
         st.session_state["batch_result_df"] = None
 
