@@ -78,7 +78,6 @@ with DAG(
 
             # Only send alerts for MEDIUM or HIGH
             if severity in ["MEDIUM", "HIGH"]:
-
                 payload = {
                     "@type": "MessageCard",
                     "@context": "http://schema.org/extensions",
@@ -110,7 +109,7 @@ with DAG(
     # ==========================================
     # (4) : Save Errors in DB
     # ==========================================
-    #@task
+    @task
     def save_errors_in_db(stats: dict):
 
         # Connecting to PostgreSQL using Airflow's secure hook
