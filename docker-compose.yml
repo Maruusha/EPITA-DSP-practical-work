@@ -7,6 +7,10 @@ x-airflow-common:
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
+    - ./good_data:/opt/airflow/data/good_data
+    - ./bad_data:/opt/airflow/data/bad_data
+    - ./raw_data:/opt/airflow/data/raw_data
+    - ./archived_data:/opt/airflow/data/archived_data
   user: "${AIRFLOW_UID}:0"
 
 services:
@@ -27,8 +31,7 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql
       
-
-  fastapi-service:
+  fastapi:
     build: ./model_service
     image: tiagolow/fastapi
     container_name: fastapi
@@ -38,11 +41,13 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - AIRFLOW_DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@host:5432/${AIRFLOW_DB_NAME}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
       
 
-  streamlit-service:
+  streamlit:
     build: ./webapp
     image: streamlit
     container_name: streamlit
@@ -53,10 +58,10 @@ services:
     env_file:
       - .env
     environment:
-      - REP_PREDICT_API_URL=http://fastapi-service:80
+      - REP_PREDICT_API_URL=http://fastapi:80
     depends_on:
-      - fastapi-service
-      - db
+      fastapi:
+        condition: service_started
 
 
   airflow-apiserver:
@@ -73,8 +78,11 @@ services:
       retries: 5
       start_period: 30s
     restart: always
+    environment:
+      - AIRFLOW_VAR_TEAMS_WEBHOOK=${AIRFLOW_TEAMS_WEBHOOK}
     depends_on:
-      - airflow-init
+      airflow-init:
+        condition: service_completed_successfully
 
 
   airflow-scheduler:
@@ -86,7 +94,8 @@ services:
       - "8974:8080"
     restart: always
     depends_on:
-      - airflow-init
+      airflow-init:
+        condition: service_completed_successfully
 
 
   airflow-dag-processor:
@@ -96,7 +105,8 @@ services:
       bash -c "airflow dag-processor >> /opt/airflow/logs/airflow_dag-processor.log 2>&1"    
     restart: always
     depends_on:
-       - airflow-init       
+       airflow-init:
+        condition: service_completed_successfully       
         
 
   airflow-init:
@@ -118,6 +128,11 @@ services:
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD}
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
+    depends_on:
+      db:
+        condition: service_healthy
+      fastapi:
+        condition: service_started
 
   airflow-cli:
     <<: *airflow-common
@@ -130,7 +145,8 @@ services:
       - -c
       - airflow
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres-db-volume:
