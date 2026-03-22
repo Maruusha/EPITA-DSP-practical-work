@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 base_dir = os.path.dirname(os.path.abspath(__file__))
 dataset_path = os.path.join(base_dir, 'raw_data')
  
-output_folder = os.path.join(base_dir, 'bad_data')
+output_folder = os.path.join(base_dir, 'raw_data')
 os.makedirs(output_folder, exist_ok=True)
 
 ERROR_PERCENTAGE = 0.15  # min 0 max 1
