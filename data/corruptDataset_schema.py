@@ -35,7 +35,7 @@ for file_name in files:
     df = df.drop(columns=[drop_col])
     print(f"Applied Schema Error to {file_name}: Dropped {drop_col}")
 
-    # SAVE TO BAD_DATA
+    # SAVE TO RAW_DATA
     output_path = os.path.join(output_folder, f"corrupted_schema_{file_name}")
     df.to_csv(output_path, index=False)
     print(f"Processed {file_name}: Corrupted {drop_col} rows -> {output_path}")
