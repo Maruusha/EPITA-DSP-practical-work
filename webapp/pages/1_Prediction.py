@@ -104,21 +104,27 @@ with tab_single:
         if start_hour >= end_hour:
             st.error("End hour must be greater than start hour.")
         else:
-            # Build payload
-            payload = [{
-                "date": selected_date.strftime("%Y-%m-%d"),
-                "start_hour": start_hour,
-                "end_hour": end_hour,
-                "energy_source": energy_source,
-                "prediction_source": DEFAULT_SOURCE
-            }]
+            try:
+                # Build payload
+                payload = [{
+                    "date": selected_date.strftime("%Y-%m-%d"),
+                    "start_hour": start_hour,
+                    "end_hour": end_hour,
+                    "energy_source": energy_source,
+                    "prediction_source": DEFAULT_SOURCE
+                }]
 
-            # Only runs if validation passes
-            result_df = run_prediction(payload)
+                # Only runs if validation passes
+                result_df = run_prediction(payload)
 
-            if result_df is not None:
-                st.success("Prediction successful!")
-                st.dataframe(result_df, use_container_width=True)
+                if result_df is not None:
+                    st.success("Prediction successful!")
+                    st.dataframe(result_df, use_container_width=True)
+            except Exception as e:
+                st.error("Something went wrong during prediction.")
+
+                with st.expander("Show error details"):
+                    st.exception(e)
 
 # ----------Batch Prediction----------
 with tab_batch:
@@ -160,31 +166,38 @@ with tab_batch:
             clear_batch_results()
             st.error("Please upload a CSV file first.")
         else:
-            required_columns = [
-                "date",
-                "start_hour",
-                "end_hour",
-                "energy_source"
-            ]
+            try:
+                required_columns = [
+                    "date",
+                    "start_hour",
+                    "end_hour",
+                    "energy_source"
+                ]
 
-            missing = [
-                col for col in required_columns if col not in batch_df.columns
-            ]
+                missing = [
+                    col for col in required_columns if col not in batch_df.columns
+                ]
 
-            if missing:
+                if missing:
+                    clear_batch_results()
+                    st.error(f"This CSV file does not contain required columns. Missing columns: {missing}")
+                else:
+                    # Add prediction_source column
+                    batch_df = batch_df.copy()
+                    batch_df["prediction_source"] = DEFAULT_SOURCE
+
+                    payload = batch_df.to_dict(orient="records")
+
+                    result_df = run_prediction(payload)
+
+                    if result_df is not None:
+                        st.session_state["batch_result_df"] = result_df
+            except Exception as e:
                 clear_batch_results()
-                st.error(f"This CSV file does not contain required columns. Missing columns: {missing}")
-            else:
-                # Add prediction_source column
-                batch_df = batch_df.copy()
-                batch_df["prediction_source"] = DEFAULT_SOURCE
+                st.error("Something went wrong during batch prediction.")
 
-                payload = batch_df.to_dict(orient="records")
-
-                result_df = run_prediction(payload)
-
-                if result_df is not None:
-                    st.session_state["batch_result_df"] = result_df
+                with st.expander("Show error details"):
+                    st.exception(e)
 
     # Display results
     if "batch_result_df" in st.session_state and st.session_state["batch_result_df"] is not None:
@@ -195,12 +208,18 @@ with tab_batch:
         st.dataframe(result_df, use_container_width=True)
 
         # Allow Download
-        csv = result_df.to_csv(index=False).encode("utf-8")
+        try:
+            csv = result_df.to_csv(index=False).encode("utf-8")
 
-        st.download_button(
-            label="Download predictions as CSV",
-            data=csv,
-            file_name="prediction_results.csv",
-            mime="text/csv",
-            type="secondary"
-        )
+            st.download_button(
+                label="Download predictions as CSV",
+                data=csv,
+                file_name="prediction_results.csv",
+                mime="text/csv",
+                type="secondary"
+            )
+        except Exception as e:
+            st.error("Failed to prepare download file.")
+
+            with st.expander("Show error details"):
+                st.exception(e)
