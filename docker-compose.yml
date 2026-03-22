@@ -1,9 +1,22 @@
+
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:3.1.7
+  env_file:
+    - .env
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./data/good_data:/opt/airflow/data/good_data
+    - ./data/bad_data:/opt/airflow/data/bad_data
+    - ./data/raw_data:/opt/airflow/data/raw_data
+    - ./data/archived_data:/opt/airflow/data/archived_data
+  user: "${AIRFLOW_UID}:0"
+
 services:
-  # --- Database Service ---
   db:
     image: postgres:alpine3.22
     container_name: postgres
-    # These variables are pulled from your local .env file
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -15,11 +28,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  # --- FastAPI Backend Service ---
-  fastapi-service:
-    image: fastapi:v0.1
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql
+      
+  fastapi:
     build: ./model_service
+    image: tiagolow/fastapi
     container_name: fastapi
     ports:
       - "8080:80"
@@ -27,14 +41,15 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - AIRFLOW_DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@host:5432/${AIRFLOW_DB_NAME}
     depends_on:
       db:
         condition: service_healthy
+      
 
-  # --- Streamlit Frontend Service ---
-  streamlit-service:
-    image: streamlit:v0.1
+  streamlit:
     build: ./webapp
+    image: streamlit
     container_name: streamlit
     ports:
       - "8501:8501"
@@ -43,9 +58,95 @@ services:
     env_file:
       - .env
     environment:
-      # Internal URL for Streamlit to talk to FastAPI
-      - REP_PREDICT_API_URL=http://fastapi-service:80
+      - REP_PREDICT_API_URL=http://fastapi:80
     depends_on:
-      - fastapi-service
-      - db
+      fastapi:
+        condition: service_started
 
+
+  airflow-apiserver:
+    <<: *airflow-common
+    container_name: airflow-apiserver
+    command: >
+      bash -c "airflow api-server >> /opt/airflow/logs/airflow_api-server.log 2>&1"    
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8081/api/v2/version"]      
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: always
+    environment:
+      - AIRFLOW_VAR_TEAMS_WEBHOOK=${AIRFLOW_TEAMS_WEBHOOK_URL}
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: >
+      bash -c "airflow scheduler >> /opt/airflow/logs/airflow_scheduler.log 2>&1"    
+    ports:
+      - "8974:8080"
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    container_name: airflow-dag-processor
+    command: >
+      bash -c "airflow dag-processor >> /opt/airflow/logs/airflow_dag-processor.log 2>&1"    
+    restart: always
+    depends_on:
+       airflow-init:
+        condition: service_completed_successfully       
+        
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/{logs,dags}
+        /entrypoint airflow config list >/dev/null
+        chown -R "${AIRFLOW_UID}:0" /opt/airflow/
+        chown -v -R "${AIRFLOW_UID}:0" /opt/airflow/{logs,dags}
+
+    environment:      
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD}
+      _PIP_ADDITIONAL_REQUIREMENTS: ''
+    user: "0:0"
+    depends_on:
+      db:
+        condition: service_healthy
+      fastapi:
+        condition: service_started
+
+  airflow-cli:
+    <<: *airflow-common
+    profiles:
+      - debug
+    environment:      
+      CONNECTION_CHECK_MAX_COUNT: "0"
+    command:
+      - bash
+      - -c
+      - airflow
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres-db-volume:
