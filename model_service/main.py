@@ -161,11 +161,11 @@ async def get_history(
 ):
     energy_source_map = request.app.state.energy_source_map
     energy_source_id = None
-    if energy_source_name is not None:
-        energy_source_id = energy_source_map.get(energy_source_name)
+    if energy_source is not None:
+        energy_source_id = energy_source_map.get(energy_source)
         if energy_source_id is None:
-            raise HTTPException(status_code=404, detail=f"Energy source '{energy_source_name}' not found")
-    return db_utility.query_predictions(
+            raise HTTPException(status_code=404, detail=f"Energy source '{energy_source}' not found")
+    records = db_utility.query_predictions(
         db=db,
         ml_model=ml_model,        
         energy_source_id= energy_source_id,
@@ -174,3 +174,18 @@ async def get_history(
         prediction_source=prediction_source,
         limit=limit
     )
+    predictions = [
+        {
+            "production": r.predict_result,
+            "model_version": r.ml_model,
+            "received_input": {
+                "date": r.input_date,
+                "start_hour": r.input_time_start,
+                "end_hour": r.input_time_end,
+                "energy_source": energy_source,
+                "prediction_source": r.prediction_source,
+            }
+        }
+        for r in records
+    ]
+    return {"status": "success", "predictions": predictions}
