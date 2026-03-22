@@ -20,15 +20,26 @@ def clear_batch_results():
     if "batch_result_df" in st.session_state:
         st.session_state["batch_result_df"] = None
 
+def show_api_error(error_message, exception=None):
+    st.error("Something went wrong while calling the prediction service. Please try again.")
+
+    with st.expander("Show error details"):
+        if exception:
+            st.exception(exception)
+        else:
+            st.write(error_message)
+
 def run_prediction(payload):
     """Calls API and returns a dataframe of predictions."""
     
     with st.spinner("Calling prediction service..."):
-        predictions = make_prediction(payload)
+        results = make_prediction(payload)
 
-    if "error" in predictions:
-        st.error(f"API Error: {predictions['error']}")
+    if "error" in results:
+        show_api_error(results['error'])
         return None
+
+    predictions = results.get("predictions", [])
 
     if not predictions:
         st.error("No predictions returned from API.")

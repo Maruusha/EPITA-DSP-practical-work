@@ -14,6 +14,15 @@ if "last_query_params" not in st.session_state:
 def clear_past_results():
     st.session_state["past_result_df"] = None
 
+def show_api_error(error_message, exception=None):
+    st.error("Something went wrong while fetching the past predictions. Please try again.")
+
+    with st.expander("Show error details"):
+        if exception:
+            st.exception(exception)
+        else:
+            st.write(error_message)
+
 # -----Page UI-----
 st.title("Past Predictions")
 
@@ -65,14 +74,14 @@ if st.button("Retrieve Predictions", type="primary"):
             clear_past_results()
             st.error("Start date must be before end date.")
         else:
-            with st.spinner("Fetching predictions..."):
-                past_predictions = get_past_predictions(query_params)
+            with st.spinner("Fetching past predictions..."):
+                results = get_past_predictions(query_params)
 
-            if "error" in past_predictions:
+            if "error" in results:
                 clear_past_results()
-                st.error(f"API Error: {past_predictions['error']}")
+                show_api_error(results['error'])
             else:
-                predictions = past_predictions.get("predictions", [])
+                predictions = results.get("predictions", [])
                 if not predictions:
                     clear_past_results()
                     st.warning("No predictions found for the selected filters.")
