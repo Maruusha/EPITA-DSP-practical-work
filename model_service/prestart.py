@@ -1,6 +1,11 @@
 import db_utility
+import os
 from db_utility import EnergySource, SessionLocal
 from sqlalchemy.dialects.postgresql import insert
+
+#Creating airflow databases if not exist
+AIRFLOW_DATABASE_URL = os.getenv("AIRFLOW_DATABASE_URL")
+db_utility.create_database_if_not_exists(AIRFLOW_DATABASE_URL)
 
 print("Initializing database tables...")
 db_utility.Base.metadata.create_all(bind=db_utility.engine, checkfirst=True)
