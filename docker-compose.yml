@@ -1,7 +1,6 @@
 
 x-airflow-common:
   &airflow-common
-  image: dsp-airflow-custom:latest
   build: ./dags
   env_file:
     - .env
@@ -113,6 +112,7 @@ services:
   airflow-init:
     <<: *airflow-common
     container_name: airflow-init
+    image: dsp-airflow-custom:latest
     entrypoint: /bin/bash
     command:
       - -c
