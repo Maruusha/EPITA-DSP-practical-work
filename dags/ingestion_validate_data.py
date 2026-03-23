@@ -17,14 +17,14 @@ VALID_SEASONS = ['Spring', 'Summer', 'Fall', 'Winter']
 VALID_SOURCES = ['Wind', 'Solar', 'Mixed'] 
 
 @dag(
-    dag_id='validate_data',
+    dag_id='ingestion_validate_data',
     description='Ingest data from a file in raw_data folder, validate and process it',
-    tags=['dsp', 'data_ingestion', 'validate_data'],
+    tags=['dsp', 'data_ingestion', 'ingestion_validate_data'],
     schedule=timedelta(minutes=5),
     start_date=pendulum.today("UTC"),  # sets the starting point of the DAG
     max_active_runs=1  # Ensure only one active run at a time
 )
-def validate_data():
+def ingestion_validate_data():
     @task
     def read_data() -> dict:    
         folderpath = '../data/raw_data/'
@@ -188,10 +188,10 @@ def validate_data():
             logging.info("No bad records found. Data is 100% clean.")
 
     # Task relateionships
-    data_to_ingest = read_data()
-    file_content = validate_data(data_to_ingest)
-    # save_statistics(temp)
-    # send_alerts(temp)
+    raw_data_to_ingest = read_data()
+    file_content = validate_data(raw_data_to_ingest)
+    save_statistics(file_content)
+    send_alerts(file_content)
     split_and_save_data(file_content)
 
-validate_data()
+ingestion_validate_data()

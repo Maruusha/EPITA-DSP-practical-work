@@ -1,16 +1,17 @@
 
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:3.1.7
+  image: dsp-airflow-custom:latest
+  build: ./dags
   env_file:
     - .env
   volumes:
     - ./dags:/opt/airflow/dags
-    - ./logs:/opt/airflow/logs
-    - ./good_data:/opt/airflow/data/good_data
-    - ./bad_data:/opt/airflow/data/bad_data
-    - ./raw_data:/opt/airflow/data/raw_data
-    - ./archived_data:/opt/airflow/data/archived_data
+    - ./dags/logs:/opt/airflow/logs
+    - ./data/good_data:/opt/airflow/data/good_data
+    - ./data/bad_data:/opt/airflow/data/bad_data
+    - ./data/raw_data:/opt/airflow/data/raw_data
+    - ./data/archived_data:/opt/airflow/data/archived_data
   user: "${AIRFLOW_UID}:0"
 
 services:
