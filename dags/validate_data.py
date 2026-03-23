@@ -146,27 +146,46 @@ def validate_data():
     # TODO - Dev task 
     @task
     def save_statistics(data_to_ingest: dict) -> None:
+        if not data_to_ingest:
+            return {}
         pass
 
     # TODO - Sapal task 
     @task
     def send_alerts(data_to_ingest: dict) -> None:
+        if not data_to_ingest:
+            return {}
         pass
 
     @task
     def split_and_save_data(data_to_ingest: dict) -> None:
         if not data_to_ingest:
+            logging.warning("No data received in split_and_save_data.")
             return 
-        # Good
-        filepath = '../data/good_data/'
+        
+        payload = DataValClass(**data_to_ingest)
+        good_folder = '../data/good_data/'
+        bad_folder = '../data/bad_data/'
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        base_name = payload.source_filename.replace('.csv', '')
 
-        # Bad
-        filepath = '../data/bad_data/'
+        # Save good records to good_data
+        if payload.good_records:
+            os.makedirs(good_folder, exist_ok=True) # Ensure folder exists
+            good_filepath = f"{good_folder}{base_name}_{timestamp}.csv"
+            pd.DataFrame(payload.good_records).to_csv(good_filepath, index=False)
+            logging.info(f"Successfully saved {len(payload.good_records)} rows to: {good_filepath}")
+        else:
+            logging.info("No good records found to save.")
 
-
-        file_name = f'{filepath}{datetime.now().strftime("%Y-%M-%d_%H-%M-%S")}.csv'
-        logging.info(f'Ingesting data to the file: {filepath}')
-        pd.DataFrame(data_to_ingest).to_csv(filepath, index=False)
+        # Save bad records to bad_data
+        if payload.bad_records:
+            os.makedirs(bad_folder, exist_ok=True) # Ensure folder exists     
+            bad_filepath = f"{bad_folder}{base_name}_{timestamp}.csv"
+            pd.DataFrame(payload.bad_records).to_csv(bad_filepath, index=False)
+            logging.warning(f"Saved {len(payload.bad_records)} rows with errors to: {bad_filepath}")
+        else:
+            logging.info("No bad records found. Data is 100% clean.")
 
     # Task relateionships
     data_to_ingest = read_data()
