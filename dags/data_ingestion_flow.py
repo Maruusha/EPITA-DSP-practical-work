@@ -2,6 +2,10 @@ from datetime import datetime
 from airflow import DAG
 from airflow.sdk import task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+import logging
+
+
+
 
 # Define the DAG based exactly on the architecture diagram
 with DAG(
@@ -54,45 +58,57 @@ with DAG(
     # ==========================================
     @task
     def save_errors_in_db(stats: dict):
+        if not stats:
+            logging.info("No stats received. Skipping database insert.")
+            return
 
-        # Connecting to PostgreSQL using Airflow's secure hook
-        hook = PostgresHook(postgres_conn_id='postgres_default')
+        logging.info(f"Connecting to Postgres to save stats for {stats.get('file_name', 'unknown file')}")
         
-        # The SQL Insert
-        insert_sql = """
-            INSERT INTO data_quality_stats (
-                file_name, 
-                total_rows_processed, 
-                total_clean_rows,
-                total_corrupt_rows, 
-                missing_values_count, 
-                type_error_count, 
-                outlier_error_count
-            ) VALUES (
-                %(file_name)s, 
-                %(total_rows_processed)s, 
-                %(total_clean_rows)s,
-                %(total_corrupt_rows)s, 
-                %(missing_values_count)s, 
-                %(type_error_count)s, 
-                %(outlier_error_count)s
-            );
-        """
-        
-        # Map the Python dictionary to the SQL command
-        params = {
-            "file_name": stats["file_name"],
-            "total_rows_processed": stats["total_rows"],
-            "total_clean_rows": stats["clean_rows"],
-            "total_corrupt_rows": stats["corrupt_rows"],
-            "missing_values_count": stats["missing_values"],
-            "type_error_count": stats["type_errors"],
-            "outlier_error_count": stats["outliers"]
-        }
-        
-        # Upload to db
-        hook.run(insert_sql, parameters=params)
-        print(f" Saved data quality stats for {stats['file_name']} to PostgreSQL.")
+        try:
+            # Connecting to PostgreSQL using Airflow's secure hook
+            hook = PostgresHook(postgres_conn_id='postgres_default')
+            
+            # The SQL Insert
+            insert_sql = """
+                INSERT INTO data_quality_stats (
+                    file_name, 
+                    total_rows_processed, 
+                    total_clean_rows,
+                    total_corrupt_rows, 
+                    missing_values_count, 
+                    type_error_count, 
+                    outlier_error_count
+                ) VALUES (
+                    %(file_name)s, 
+                    %(total_rows_processed)s, 
+                    %(total_clean_rows)s,
+                    %(total_corrupt_rows)s, 
+                    %(missing_values_count)s, 
+                    %(type_error_count)s, 
+                    %(outlier_error_count)s
+                );
+            """
+            
+            # Map the Python dictionary to the SQL command
+            params = {
+                "file_name": stats["file_name"],
+                "total_rows_processed": stats["total_rows"],
+                "total_clean_rows": stats["clean_rows"],
+                "total_corrupt_rows": stats["corrupt_rows"],
+                "missing_values_count": stats["missing_values"],
+                "type_error_count": stats["type_errors"],
+                "outlier_error_count": stats["outliers"]
+            }
+            
+            # Upload to db
+            hook.run(insert_sql, parameters=params)
+            logging.info(f"Successfully saved data quality stats for {stats['file_name']} to PostgreSQL.")
+            
+        except Exception as e:
+            # This will show up in bright red in the Airflow task logs!
+            logging.error(f"Failed to save stats to database. Error: {str(e)}")
+            # Raise the error again so Airflow accurately marks the task as failed
+            raise
 
 
 # This is the flow(Edit if needed)
