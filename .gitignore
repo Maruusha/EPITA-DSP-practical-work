@@ -209,3 +209,7 @@ __marimo__/
 /logs/
 .backup
 /data/*.csv
+/data/raw_data/*.csv
+/data/good_data/*.csv
+/data/bad_data/*.csv
+/data/archived_data/*.csv

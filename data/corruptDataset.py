@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 # save incase needed
 # dataset_path = 'raw_data'
-# output_folder = 'bad_data'
+# output_folder = 'raw_data'
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 dataset_path = os.path.join(base_dir, 'raw_data')
