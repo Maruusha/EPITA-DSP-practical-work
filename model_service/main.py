@@ -64,11 +64,14 @@ class PredictionInput(BaseModel):
         return self
        
 
-class PredictionResponse(BaseModel):
+class Prediction(BaseModel):
     production: float
     model_version: str
     received_input: PredictionInput
-    status: str
+    
+class PredictionResponse(BaseModel):
+    status: str = "success"
+    predictions: List[Prediction]
 
 # --- Health Endpoints ---
 @app.get("/health")
@@ -77,7 +80,7 @@ async def health():
 
 
 # ---  Prediction Endpoint --- 
-@app.post("/predict", response_model=List[PredictionResponse])
+@app.post("/predict", response_model=PredictionResponse)
 async def predict_energy(payload: List[PredictionInput], request: Request, db: Session = Depends(db_utility.get_db)):
 
     if len(payload) > MAX_BATCH_SIZE:
@@ -91,7 +94,7 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
         raise HTTPException(status_code=500, detail="Prediction model not loaded")	
 
     try:
-        responses = []
+        predictions = []
         db_records = []
         model_version = getattr(model, "version", "unknown")
         now = datetime.now(timezone.utc)
@@ -111,12 +114,11 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
             prediction = model.predict(features)                
 
             # prepare response
-            responses.append(
-                PredictionResponse(
+            predictions.append(
+                Prediction(
                     production=prediction,
                     model_version=model_version,
-                    received_input=row,
-                    status="success"
+                    received_input=row                    
                 )
             )
 
@@ -136,12 +138,13 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
         db_utility.save_predictions_batch(db, db_records)        
 
         # return the reponses
-        return responses
+        return {"status": "success", "predictions": predictions}
 
     except HTTPException:
         raise
 
     except Exception:
+        print(f"Prediction error: {e}")  
         raise HTTPException(
             status_code=500,
             detail="Prediction failed due to internal error"
@@ -159,13 +162,14 @@ async def get_history(
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(db_utility.get_db)
 ):
-    energy_source_map = request.app.state.energy_source_map
+    energy_name_to_id = request.app.state.energy_source_map
+    energy_id_to_name = {v: k for k, v in energy_name_to_id.items()}
     energy_source_id = None
-    if energy_source_name is not None:
-        energy_source_id = energy_source_map.get(energy_source_name)
+    if energy_source is not None:
+        energy_source_id = energy_name_to_id.get(energy_source)
         if energy_source_id is None:
-            raise HTTPException(status_code=404, detail=f"Energy source '{energy_source_name}' not found")
-    return db_utility.query_predictions(
+            raise HTTPException(status_code=404, detail=f"Energy source '{energy_source}' not found")
+    records = db_utility.query_predictions(
         db=db,
         ml_model=ml_model,        
         energy_source_id= energy_source_id,
@@ -174,3 +178,18 @@ async def get_history(
         prediction_source=prediction_source,
         limit=limit
     )
+    predictions = [
+        {
+            "production": r.predict_result,
+            "model_version": r.ml_model,
+            "received_input": {
+                "date": r.predict_date,
+                "start_hour": r.input_time_start,
+                "end_hour": r.input_time_end,
+                "energy_source": energy_id_to_name.get(r.energy_source_id),
+                "prediction_source": r.prediction_source,
+            }
+        }
+        for r in records
+    ]
+    return {"status": "success", "predictions": predictions}
