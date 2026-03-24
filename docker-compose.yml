@@ -79,7 +79,7 @@ services:
       start_period: 30s
     restart: always
     environment:
-      - AIRFLOW_VAR_TEAMS_WEBHOOK=${AIRFLOW_TEAMS_WEBHOOK}
+      - AIRFLOW_VAR_TEAMS_WEBHOOK=${AIRFLOW_TEAMS_WEBHOOK_URL}
     depends_on:
       airflow-init:
         condition: service_completed_successfully
