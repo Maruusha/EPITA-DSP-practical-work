@@ -2,8 +2,6 @@ FROM apache/airflow:3.1.7
 
 USER airflow
 
-# Set working directory
-#WORKDIR /dags
 COPY requirements.txt /opt/airflow/requirements.txt
 
 # Install dependencies as the airflow user to keep permissions correct
