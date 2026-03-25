@@ -38,9 +38,6 @@ with DAG(
             "total_rows": 500,
             "clean_rows": 200,
             "corrupt_rows": 150,
-            "missing_values": 50,
-            "type_errors": 75,
-            "outliers": 25,
             "critical_issue_found": True # Flag to trigger Step 3
         }
         return stats
