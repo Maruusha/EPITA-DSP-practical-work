@@ -16,5 +16,7 @@ class DataValClass(BaseModel):
     # Validation info
     is_schema_valid: bool = True
     schema_missing_column: List[str] = []
+    schema_missing_column_count: int = 0
     total_rows: int = 0
     error_count: int = 0
+    error_rate: float = 0

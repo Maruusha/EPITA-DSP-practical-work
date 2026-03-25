@@ -110,13 +110,13 @@ def ingestion_validate_data():
                 payload.is_schema_valid = r.success
 
         payload.error_count = len(bad_indices)
-        error_rate = payload.error_count / payload.total_rows
+        payload.error_rate = payload.error_count / payload.total_rows
 
-        if not payload.is_schema_valid or error_rate > 0.50:
+        if not payload.is_schema_valid or payload.error_rate > 0.50:
             payload.error_criticality = "High"
-        elif 0.10 <= error_rate <= 0.50:
+        elif 0.10 <= payload.error_rate <= 0.50:
             payload.error_criticality = "Medium"
-        elif 0 < error_rate < 0.10:
+        elif 0 < payload.error_rate < 0.10:
             payload.error_criticality = "Low"
         else:
             payload.error_criticality = "None"
@@ -160,11 +160,13 @@ def ingestion_validate_data():
             f"is_processed:          {payload.is_processed}\n"
             f"is_schema_valid:       {payload.is_schema_valid}\n"
             f"schema_missing_column: {payload.schema_missing_column}\n"
-            f"total_rows:            {payload.total_rows}\n"
-            f"error_count:           {payload.error_count}\n"
+            f"error_rate:            {payload.error_rate}\n"
             f"error_criticality:     {payload.error_criticality}\n"
-            f"good_record_count:     {payload.total_rows}\n"
+
+            f"total_rows:            {payload.total_rows}\n"
+            f"good_record_count:     {payload.total_rows-payload.error_count}\n"
             f"bad_record_count:      {payload.error_count}\n"
+            
         )
 
         # Save good records to good_data
