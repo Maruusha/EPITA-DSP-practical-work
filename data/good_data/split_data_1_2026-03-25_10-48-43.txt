@@ -1,0 +1,9 @@
+source_filename:       split_data_1.csv
+is_processed:          True
+is_schema_valid:       True
+schema_missing_column: []
+total_rows:            5187
+error_count:           0
+error_criticality:     None
+good_record_count:     5187
+bad_record_count:      0

@@ -155,12 +155,29 @@ def ingestion_validate_data():
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         base_name = payload.source_filename.replace('.csv', '')
 
+        summary = (
+            f"source_filename:       {payload.source_filename}\n"
+            f"is_processed:          {payload.is_processed}\n"
+            f"is_schema_valid:       {payload.is_schema_valid}\n"
+            f"schema_missing_column: {payload.schema_missing_column}\n"
+            f"total_rows:            {payload.total_rows}\n"
+            f"error_count:           {payload.error_count}\n"
+            f"error_criticality:     {payload.error_criticality}\n"
+            f"good_record_count:     {payload.total_rows}\n"
+            f"bad_record_count:      {payload.error_count}\n"
+        )
+
         # Save good records to good_data
         if payload.good_records:
             os.makedirs(good_folder, exist_ok=True) # Ensure folder exists
             good_filepath = f"{good_folder}{base_name}_{timestamp}.csv"
             pd.DataFrame(payload.good_records).to_csv(good_filepath, index=False)
             logging.info(f"Successfully saved {len(payload.good_records)} rows to: {good_filepath}")
+            # Write one summary file alongside the CSVs
+            summary_filepath = f"{good_folder}{base_name}_{timestamp}.txt"
+            with open(summary_filepath, 'w') as f:
+                f.write(summary)
+            logging.info(f"Summary saved to: {summary_filepath}")
         else:
             logging.info("No good records found to save.")
 
@@ -170,6 +187,11 @@ def ingestion_validate_data():
             bad_filepath = f"{bad_folder}{base_name}_{timestamp}.csv"
             pd.DataFrame(payload.bad_records).to_csv(bad_filepath, index=False)
             logging.warning(f"Saved {len(payload.bad_records)} rows with errors to: {bad_filepath}")
+            # Write one summary file alongside the CSVs
+            summary_filepath = f"{bad_folder}{base_name}_{timestamp}.txt"
+            with open(summary_filepath, 'w') as f:
+                f.write(summary)
+            logging.info(f"Summary saved to: {summary_filepath}")
         else:
             logging.info("No bad records found. Data is 100% clean.")
 
