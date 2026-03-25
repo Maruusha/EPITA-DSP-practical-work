@@ -1,12 +1,15 @@
 
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:3.1.7
+  build:
+    context: ./dags/
+    dockerfile: Dockerfile
+  image: airflow:latest
   env_file:
     - .env
   volumes:
     - ./dags:/opt/airflow/dags
-    - ./logs:/opt/airflow/logs
+    - ./dags/logs:/opt/airflow/logs
     - ./data/good_data:/opt/airflow/data/good_data
     - ./data/bad_data:/opt/airflow/data/bad_data
     - ./data/raw_data:/opt/airflow/data/raw_data
