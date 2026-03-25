@@ -8,6 +8,9 @@ import pendulum
 from airflow.sdk import dag, task
 import great_expectations as gx
 import great_expectations.expectations as gxe
+from airflow.models import Variable
+import requests
+import logging
 
 from DataValClass import DataValClass
 
@@ -100,6 +103,13 @@ def ingestion_validate_data():
         )
         results = validation_definition.run(batch_parameters={"dataframe": df})
 
+        # Generate Data Docs
+        context.build_data_docs()
+        data_docs_sites = context.get_docs_sites_urls()
+        report_path = data_docs_sites[0]["site_url"]
+
+        payload.source_filename = report_path
+
         bad_indices = set()
         payload.is_schema_valid = True
         for r in results.results:
@@ -136,12 +146,89 @@ def ingestion_validate_data():
             return {}
         pass
 
-    # TODO - Sapal task 
     @task
     def send_alerts(data_to_ingest: dict) -> None:
         if not data_to_ingest:
+            logging.info("No data received. Skipping alert.")
             return {}
-        pass
+        
+        try:
+        
+            logging.info("Starting Teams alert task")
+            # Extract values
+            severity = data_to_ingest.get("error_criticality", "None")
+            error_rate = data_to_ingest.get("error_rate", 0)
+            total_rows = data_to_ingest.get("total_rows", 0)
+            error_count = data_to_ingest.get("error_count", 0)
+            missing_cols = data_to_ingest.get("schema_missing_column", [])
+            report_url = data_to_ingest.get("source_filename", "N/A")
+
+            error_percent = round(error_rate * 100, 2)
+
+            # Skip LOW and NONE alerts
+            if severity not in ["High", "Medium"]:
+                logging.info(f"No alert sent (severity={severity})")
+                return
+
+            # Build summary
+            summary_parts = []
+
+            if error_count > 0:
+                summary_parts.append(
+                    f"{error_count} invalid rows out of {total_rows}"
+                )
+
+            if missing_cols:
+                summary_parts.append(
+                    f"Missing columns: {', '.join(missing_cols)}"
+                )
+
+            summary = " | ".join(summary_parts) if summary_parts else "No issues detected"
+
+            # Severity styling
+            if severity == "High":
+                icon = "🚨"
+                color = "FF0000"
+                title = "Data Quality Alert (Critical)"
+            else:
+                icon = "⚠️"
+                color = "FFA500"
+                title = "Data Quality Alert (Medium)"
+
+            # Retrieve Webhook variable
+            webhook_url = Variable.get("teams_webhook")
+
+            payload = {
+                "@type": "MessageCard",
+                "@context": "http://schema.org/extensions",
+                "summary": title,
+                "themeColor": color,
+                "title": f"{icon} {title}",
+                "sections": [
+                    {
+                        "facts": [
+                            {"name": "Severity", "value": severity},
+                            {"name": "Invalid Rows", "value": f"{error_percent}%"},
+                            {"name": "Report", "value": report_url}
+                        ]
+                    },
+                    {
+                        "text": f"**Summary:** {summary}"
+                    }
+                ]
+            }
+
+            response = requests.post(webhook_url, json=payload)
+            response.raise_for_status()
+
+            logging.info(
+                f"Teams alert sent | severity={severity} | invalid_rows={error_percent}% | report={report_url}"
+            )
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Failed to send Teams alert: {e}")
+            raise
+
 
     @task
     def split_and_save_data(data_to_ingest: dict) -> None:

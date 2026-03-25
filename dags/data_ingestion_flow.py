@@ -2,9 +2,6 @@ from datetime import datetime
 from airflow import DAG
 from airflow.sdk import task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.models import Variable
-import requests
-import logging
 
 # Define the DAG based exactly on the architecture diagram
 with DAG(
@@ -46,62 +43,8 @@ with DAG(
     # (3) : Send Alerts
     # ==========================================
     @task
-    def send_alerts(**context):
-        try:
-            webhook_url = Variable.get("teams_webhook")
-            
-            logging.info("Starting Teams alert task")
-            # Pull validation result from previous task
-            ti = context["ti"]
-            validation_result = ti.xcom_pull(task_ids="validate_data")
-
-            invalid_percent = validation_result["invalid_percent"]
-            error_summary = validation_result["summary"]
-            report_file = validation_result["report_file"]
-
-            # Determine criticality
-            if validation_result["missing_column"] or invalid_percent > 50:
-                severity = "HIGH"
-                icon = "🚨"
-                title = "CRITICAL Data Quality Alert"
-            elif 10 <= invalid_percent <= 50:
-                severity = "MEDIUM"
-                icon = "⚠️"
-                title = "Data Quality Alert (Medium)"
-            elif 0 < invalid_percent < 10:
-                severity = "LOW"
-            else:
-                severity = "NONE"
-
-            # Only send alerts for MEDIUM or HIGH
-            if severity in ["MEDIUM", "HIGH"]:
-                payload = {
-                    "@type": "MessageCard",
-                    "@context": "http://schema.org/extensions",
-                    "summary": title,
-                    "themeColor": "FF0000" if severity == "HIGH" else "FFA500",
-                    "title": f"{icon} {title}",
-                    "sections": [
-                        {
-                            "facts": [
-                                {"name": "Severity:", "value": severity},
-                                {"name": "Invalid Rows:", "value": f"{invalid_percent}%"},
-                                {"name": "Report:", "value": report_file}
-                            ]
-                        },
-                        {
-                            "text": f"**Summary:** {error_summary}"
-                        }
-                    ]
-                }
-
-                requests.post(webhook_url, json=payload)
-                logging.info(f"Teams alert sent successfully | report={report_file} | severity={severity} | invalid_rows={invalid_percent}%")
-            else:
-                logging.info("No alert needed (LOW or NONE)")
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Failed to send Teams alert: {e}")
-            raise
+    def send_alerts(stats: dict):
+        """TODO: Send alerts to Teams/Slack if there are critical issues."""
 
     # ==========================================
     # (4) : Save Errors in DB
