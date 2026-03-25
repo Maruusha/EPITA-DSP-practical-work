@@ -2,7 +2,7 @@
 
 FROM apache/airflow:3.1.7
 
-USER root
+USER airflow
 
 # Set working directory
 #WORKDIR /dags

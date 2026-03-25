@@ -1,7 +1,10 @@
 
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:3.1.7
+  build:
+    context: ./dags/
+    dockerfile: Dockerfile
+  image: airflow:latest
   env_file:
     - .env
   volumes:
