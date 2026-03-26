@@ -68,7 +68,7 @@ def ingestion_validate_data():
         try:
             suite = context.suites.get(name=suite_name)
         except:
-            suite = context.suites.add(gx.ExpectationSuite(name=suite_name))
+            suite = context.suites.add_or_update(gx.ExpectationSuite(name=suite_name))
 
         suite.add_expectation(gxe.ExpectTableColumnsToMatchSet(column_set=COLUMNS))
         for col in COLUMNS:
@@ -87,15 +87,23 @@ def ingestion_validate_data():
         suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="Production", min_value=0, max_value=25000))
         suite.add_expectation(gxe.ExpectColumnValuesToMatchStrftimeFormat(column="Date", strftime_format="%m/%d/%Y"))
 
-        datasource = context.data_sources.add_pandas(name="my_pandas_datasource")
-        asset = datasource.add_dataframe_asset(name="my_df_asset")
+        datasource = context.data_sources.add_or_update_pandas(name="my_pandas_datasource")
+        asset = datasource.add_or_update_dataframe_asset(name="my_df_asset")
         batch_definition = asset.add_batch_definition_whole_dataframe("my_batch")
 
-        validation_definition = context.validation_definitions.add(
+        validation_definition = context.validation_definitions.add_or_update(
             gx.ValidationDefinition(
                 name="my_validation",
                 data=batch_definition,
                 suite=suite,
+            )
+        )
+        # Create or update the Checkpoint
+        context.checkpoints.add_or_update(
+            gx.Checkpoint(
+                name="my_checkpoint",
+                validation_definitions=[validation_definition],
+                result_format="SUMMARY"
             )
         )
         results = validation_definition.run(batch_parameters={"dataframe": df})
