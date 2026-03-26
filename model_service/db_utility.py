@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey, text
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey, text, Boolean
 from sqlalchemy.orm import sessionmaker, DeclarativeBase, Session
 from datetime import datetime, timezone
 
@@ -46,14 +46,11 @@ class DataQualityStat(Base):
     ingestion_timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # additional info about the bad dataset
-    total_rows_processed = Column(Integer)
-    total_clean_rows = Column(Integer)
-    total_corrupt_rows = Column(Integer)
-    
-    # The detailed error columns
-    missing_values_count = Column(Integer)
-    type_error_count = Column(Integer)
-    outlier_error_count = Column(Integer)
+    total_rows = Column(Integer)
+    error_count = Column(Integer)
+    error_rate = Column(Float)
+    is_schema_valid = Column(Boolean)
+    error_criticality = Column(String)
 
 # --- Database Operations ---
 
