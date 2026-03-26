@@ -5,10 +5,9 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import pendulum
-from airflow.sdk import dag, task
+from airflow.sdk import dag, task, Variable
 import great_expectations as gx
 import great_expectations.expectations as gxe
-from airflow.models import Variable
 import requests
 import logging
 
@@ -108,7 +107,7 @@ def ingestion_validate_data():
         data_docs_sites = context.get_docs_sites_urls()
         report_path = data_docs_sites[0]["site_url"]
 
-        payload.source_filename = report_path
+        payload.report_url = report_path
 
         bad_indices = set()
         payload.is_schema_valid = True
@@ -159,9 +158,9 @@ def ingestion_validate_data():
             severity = data_to_ingest.get("error_criticality", "None")
             error_rate = data_to_ingest.get("error_rate", 0)
             total_rows = data_to_ingest.get("total_rows", 0)
-            error_count = data_to_ingest.get("error_count", 0)
-            missing_cols = data_to_ingest.get("schema_missing_column", [])
-            report_url = data_to_ingest.get("source_filename", "N/A")
+            source_file = data_to_ingest.get("source_filename", "N/A")
+            report_url = data_to_ingest.get("report_url", "N/A")
+            is_schema_valid = data_to_ingest.get("is_schema_valid", False)
 
             error_percent = round(error_rate * 100, 2)
 
@@ -170,22 +169,6 @@ def ingestion_validate_data():
                 logging.info(f"No alert sent (severity={severity})")
                 return
 
-            # Build summary
-            summary_parts = []
-
-            if error_count > 0:
-                summary_parts.append(
-                    f"{error_count} invalid rows out of {total_rows}"
-                )
-
-            if missing_cols:
-                summary_parts.append(
-                    f"Missing columns: {', '.join(missing_cols)}"
-                )
-
-            summary = " | ".join(summary_parts) if summary_parts else "No issues detected"
-
-            # Severity styling
             if severity == "High":
                 icon = "🚨"
                 color = "FF0000"
@@ -207,13 +190,13 @@ def ingestion_validate_data():
                 "sections": [
                     {
                         "facts": [
-                            {"name": "Severity", "value": severity},
-                            {"name": "Invalid Rows", "value": f"{error_percent}%"},
+                            {"name": "Severity:", "value": severity},
+                            {"name": "Schema Valid:", "value": is_schema_valid},
+                            {"name": "Invalid Rows:", "value": f"{error_percent}%"},
+                            {"name": "Total Rows:", "value": total_rows},
+                            {"name": "Source File:", "value": source_file},
                             {"name": "Report", "value": report_url}
                         ]
-                    },
-                    {
-                        "text": f"**Summary:** {summary}"
                     }
                 ]
             }
@@ -222,7 +205,7 @@ def ingestion_validate_data():
             response.raise_for_status()
 
             logging.info(
-                f"Teams alert sent | severity={severity} | invalid_rows={error_percent}% | report={report_url}"
+                f"Teams alert sent | severity={severity} | invalid_rows={error_percent}% | source_file={source_file} | report={report_url}"
             )
 
         except requests.exceptions.RequestException as e:
