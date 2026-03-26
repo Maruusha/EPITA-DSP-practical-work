@@ -207,6 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 /logs/
+dags/logs/
 .backup
 /data/*.csv
 /data/*.txt
