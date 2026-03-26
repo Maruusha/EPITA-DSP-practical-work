@@ -239,7 +239,7 @@ def ingestion_validate_data():
                             {"name": "Invalid Rows:", "value": f"{error_percent}%"},
                             {"name": "Total Rows:", "value": total_rows},
                             {"name": "Source File:", "value": source_file},
-                            {"name": "Report", "value": report_url}
+                            {"name": "Report:", "value": report_url}
                         ]
                     }
                 ]
