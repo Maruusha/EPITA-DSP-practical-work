@@ -39,8 +39,10 @@ def ingestion_validate_data():
             full_path = os.path.join(folderpath, filename)
 
             data_to_ingest_df = pd.read_csv(full_path, dtype=str)
+            # prevent serialization errors
+            data_to_ingest_df = data_to_ingest_df.astype(object).fillna('nan_value')
             df_row_len = data_to_ingest_df.shape[0]
-            logging.info(f'Extract {df_row_len} rows from the file {filename}')
+            logging.warning(f'Extract {df_row_len} rows from the file {filename}')
 
             # Delete the file
             os.remove(full_path)
@@ -55,7 +57,9 @@ def ingestion_validate_data():
                         is_processed=False,
                         total_rows=len(data_to_ingest_df)
                     )
-            return data_obj.model_dump() 
+            dump =data_obj.model_dump() 
+            logging.warning("Created the data_obj"+str(dump))
+            return dump
         else: 
             logging.warning("No CSV files found in raw_data folder. Skipping run.")
             raise AirflowSkipException("No file found!!")
@@ -66,7 +70,15 @@ def ingestion_validate_data():
             return {}
         
         payload = DataValClass(**data_to_ingest)
-        df = pd.DataFrame(payload.records)
+        df = pd.DataFrame(payload.records) 
+
+        # Convert columns
+        if 'Date' in df.columns:
+            df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%Y', errors='coerce')
+        numeric_cols = ['Start_Hour', 'End_Hour', 'Day_of_Year', 'Production']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')   
 
         context = gx.get_context()
         suite_name = "dsp_validation_suite"
@@ -78,6 +90,7 @@ def ingestion_validate_data():
 
         suite.add_expectation(gxe.ExpectTableColumnsToMatchSet(column_set=COLUMNS, exact_match=True))
         for col in COLUMNS:
+            suite.add_expectation(gx.expectations.ExpectColumnToExist(column=col))
             suite.add_expectation(gxe.ExpectColumnValuesToNotBeNull(column=col))
         suite.add_expectation(gxe.ExpectColumnValuesToBeInSet(column='Day_Name', value_set=VALID_DAYS))
         suite.add_expectation(gxe.ExpectColumnValuesToBeInSet(column='Month_Name', value_set=VALID_MONTHS))
@@ -87,7 +100,7 @@ def ingestion_validate_data():
         suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="End_Hour", min_value=0, max_value=24))
         suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="Day_of_Year", min_value=1, max_value=366))
         suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="Production", min_value=0, max_value=25000))
-        suite.add_expectation(gxe.ExpectColumnValuesToMatchStrftimeFormat(column="Date", strftime_format="%m/%d/%Y"))
+        suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="Date", min_value=datetime(2018, 1, 1), max_value=datetime.now()))
 
         datasource = context.data_sources.add_or_update_pandas(name="my_pandas_datasource")
         try:
@@ -129,8 +142,11 @@ def ingestion_validate_data():
                 result_format="SUMMARY"
             )
         )
-        results = validation_definition.run(batch_parameters={"dataframe": df})
-
+        results = validation_definition.run(
+            batch_parameters={"dataframe": df},
+            result_format={"result_format": "COMPLETE"}
+        )
+        logging.warning("Result"+str(results))
         bad_indices = set()
         payload.is_schema_valid = True
         for r in results.results:
@@ -154,6 +170,12 @@ def ingestion_validate_data():
             payload.error_criticality = "Low"
         else:
             payload.error_criticality = "None"
+
+        # Convert back the cols
+        if 'Date' in df.columns:
+            df['Date'] = df['Date'].dt.strftime('%-m/%-d/%Y').fillna('invalid_date')
+        # prevent Serialization error
+        df = df.astype(object).where(pd.notna(df), None)
 
         payload.is_processed = True
         bad_df = df.iloc[list(bad_indices)]
@@ -253,7 +275,9 @@ def ingestion_validate_data():
         if payload.good_records:
             os.makedirs(good_folder, exist_ok=True) # Ensure folder exists
             good_filepath = f"{good_folder}{base_name}_{timestamp}.csv"
-            pd.DataFrame(payload.good_records).to_csv(good_filepath, index=False)
+            df = pd.DataFrame(payload.good_records)
+            df = df[COLUMNS] # Correct order
+            df.to_csv(good_filepath, index=False)
             logging.info(f"Successfully saved {len(payload.good_records)} rows to: {good_filepath}")
             # Write one summary file alongside the CSVs
             summary_filepath = f"{good_folder}{base_name}_{timestamp}.txt"
@@ -267,7 +291,10 @@ def ingestion_validate_data():
         if payload.bad_records:
             os.makedirs(bad_folder, exist_ok=True) # Ensure folder exists     
             bad_filepath = f"{bad_folder}{base_name}_{timestamp}.csv"
-            pd.DataFrame(payload.bad_records).to_csv(bad_filepath, index=False)
+            
+            df = pd.DataFrame(payload.bad_records)
+            df = df[COLUMNS] # Correct order
+            df.to_csv(bad_filepath, index=False)
             logging.warning(f"Saved {len(payload.bad_records)} rows with errors to: {bad_filepath}")
             # Write one summary file alongside the CSVs
             summary_filepath = f"{bad_folder}{base_name}_{timestamp}.txt"
