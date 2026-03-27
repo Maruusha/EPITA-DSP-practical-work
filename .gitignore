@@ -207,6 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 /logs/
+dags/logs/
 .backup
 /data/*.csv
 /data/*.txt
@@ -218,3 +219,5 @@ __marimo__/
 /data/bad_data/*.txt
 /data/archived_data/*.csv
 /data/archived_data/*.txt
+
+/dags/logs/

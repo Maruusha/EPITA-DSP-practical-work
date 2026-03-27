@@ -8,6 +8,8 @@ from airflow.sdk import dag, task
 import great_expectations as gx
 import great_expectations.expectations as gxe
 
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+
 from DataValClass import DataValClass
 
 # Reference lists for validation
@@ -137,12 +139,54 @@ def ingestion_validate_data():
 
         return payload.model_dump()
 
-    # TODO - Dev task 
+    # Sending error stats to db 
     @task
     def save_statistics(data_to_ingest: dict) -> None:
         if not data_to_ingest:
-            return {}
-        pass
+            logging.info("No data received. Skipping database insert.")
+            return
+
+        # Extract fields from the DataValClass dictionary
+        file_name = data_to_ingest.get('source_filename', 'unknown_file')
+        total_rows = data_to_ingest.get('total_rows', 0)
+        error_count = data_to_ingest.get('error_count', 0)
+        error_rate = data_to_ingest.get('error_rate', 0.0)
+        is_schema_valid = data_to_ingest.get('is_schema_valid', True)
+        error_criticality = data_to_ingest.get('error_criticality', 'None')
+
+        logging.info(f"Connecting to Postgres to save stats for {file_name}")
+
+        try:
+            # Connecting to PostgreSQL using Airflow's secure hook
+            hook = PostgresHook(postgres_conn_id='postgres_default')
+
+            # The SQL Insert matching your new database columns
+            insert_sql = """
+                INSERT INTO data_quality_stats (
+                    file_name, total_rows, error_count, error_rate, is_schema_valid, error_criticality
+                ) VALUES (
+                    %(file_name)s, %(total_rows)s, %(error_count)s, %(error_rate)s, %(is_schema_valid)s, %(error_criticality)s
+                );
+            """
+
+            # Map the Python variables to the SQL command
+            params = {
+                "file_name": file_name,
+                "total_rows": total_rows,
+                "error_count": error_count,
+                "error_rate": error_rate,
+                "is_schema_valid": is_schema_valid,
+                "error_criticality": error_criticality
+            }
+
+            # Upload to db
+            hook.run(insert_sql, parameters=params)
+            logging.info(f"Successfully saved data quality stats for {file_name} to PostgreSQL.")
+
+        except Exception as e:
+            # This will show up in bright red in the Airflow task logs
+            logging.error(f"Failed to save stats to database. Error: {str(e)}")
+            raise
 
     # TODO - Sapal task 
     @task
