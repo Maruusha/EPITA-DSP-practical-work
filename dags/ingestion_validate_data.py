@@ -161,6 +161,9 @@ def ingestion_validate_data():
 
         payload.error_count = len(bad_indices)
         payload.error_rate = payload.error_count / payload.total_rows
+        if not payload.is_schema_valid:
+            payload.error_count = payload.total_rows
+            payload.error_rate = 1
 
         if not payload.is_schema_valid or payload.error_rate > 0.50:
             payload.error_criticality = "High"
@@ -185,7 +188,7 @@ def ingestion_validate_data():
             payload.good_records = good_df.to_dict(orient="records")
         else: 
             # If data has schema error, all data is bad
-            payload.bad_records = good_df.to_dict(orient="records")
+            payload.bad_records = df.to_dict(orient="records")
 
         return payload.model_dump()
 
@@ -293,7 +296,11 @@ def ingestion_validate_data():
             bad_filepath = f"{bad_folder}{base_name}_{timestamp}.csv"
             
             df = pd.DataFrame(payload.bad_records)
-            df = df[COLUMNS] # Correct order
+            
+            # Safely filter only columns that exist
+            existing_cols = [cols for cols in COLUMNS if cols in df.columns]
+            df = df[existing_cols] 
+            
             df.to_csv(bad_filepath, index=False)
             logging.warning(f"Saved {len(payload.bad_records)} rows with errors to: {bad_filepath}")
             # Write one summary file alongside the CSVs

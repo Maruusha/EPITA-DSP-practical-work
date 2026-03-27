@@ -143,7 +143,7 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
     except HTTPException:
         raise
 
-    except Exception:
+    except Exception as e:
         print(f"Prediction error: {e}")  
         raise HTTPException(
             status_code=500,
