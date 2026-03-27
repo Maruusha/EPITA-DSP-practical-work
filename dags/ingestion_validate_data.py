@@ -1,10 +1,9 @@
 import logging
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pandas as pd
-import pendulum
 from airflow.sdk import dag, task
 import great_expectations as gx
 import great_expectations.expectations as gxe
@@ -22,9 +21,10 @@ COLUMNS = ['Date', 'Start_Hour', 'End_Hour', 'Source', 'Day_of_Year', 'Day_Name'
     dag_id='ingestion_validate_data',
     description='Ingest data from a file in raw_data folder, validate and process it',
     tags=['dsp', 'data_ingestion', 'ingestion_validate_data'],
-    schedule=timedelta(minutes=5),
-    start_date=pendulum.today("UTC"),  # sets the starting point of the DAG
-    max_active_runs=1  # Ensure only one active run at a time
+    schedule="*/3 * * * *",
+    start_date=datetime(2024, 1, 1),  # sets the starting point of the DAG
+    max_active_runs=1,  # Ensure only one active run at a time
+    catchup=False
 )
 def ingestion_validate_data():
     @task
@@ -89,7 +89,7 @@ def ingestion_validate_data():
 
         datasource = context.data_sources.add_or_update_pandas(name="my_pandas_datasource")
         asset = datasource.add_or_update_dataframe_asset(name="my_df_asset")
-        batch_definition = asset.add_batch_definition_whole_dataframe("my_batch")
+        batch_definition = asset.get_or_add_batch_definition_whole_dataframe("my_batch")
 
         validation_definition = context.validation_definitions.add_or_update(
             gx.ValidationDefinition(
