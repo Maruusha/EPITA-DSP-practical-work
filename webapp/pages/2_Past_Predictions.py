@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
 from services.api_client import get_past_predictions
 
 # -----Session state Initialization-----
@@ -40,6 +40,10 @@ with col2:
         value=date.today()
     )
 
+start_datetime = datetime.combine(start_date, datetime.min.time())  # 00:00:00
+
+end_datetime = datetime.combine(end_date, datetime.max.time())  # 23:59:59.999999
+
 energy_source = st.selectbox(
     "Energy Source",
     options=["Wind", "Solar", "Mixed", "All"]
@@ -50,10 +54,19 @@ prediction_source = st.selectbox(
     options=["Webapp", "Scheduled", "All"]
 )
 
+limit = st.number_input(
+    "Max rows",
+    min_value=1,
+    max_value=100,
+    value=100,
+    step=10
+)
+
 # For session
 query_params = {
-    "start_date": start_date.strftime("%Y-%m-%d"),
-    "end_date": end_date.strftime("%Y-%m-%d")
+    "start_date": start_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+    "end_date": end_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+    "limit": limit
 }
 
 if energy_source != "All":
@@ -70,7 +83,7 @@ if st.session_state["last_query_params"] != query_params:
 if st.button("Retrieve Predictions", type="primary"):
 
     try: 
-        if start_date > end_date:
+        if start_datetime > end_datetime:
             clear_past_results()
             st.error("Start date must be before end date.")
         else:
@@ -96,7 +109,8 @@ if st.button("Retrieve Predictions", type="primary"):
                         input_df = pd.json_normalize(result_df["received_input"])
                         # Rename columns to display on UI
                         input_df = input_df.rename(columns={
-                            "date": "Date",
+                            "date": "Prediction Run Date",
+                            "input_date": "Date",
                             "start_hour": "Start hour",
                             "end_hour": "End hour",
                             "energy_source": "Energy Source",
@@ -109,7 +123,7 @@ if st.button("Retrieve Predictions", type="primary"):
 
                         # Make sure column order
                         input_df = input_df[
-                            ["Date", "Start hour", "End hour", "Energy Source",
+                            ["Prediction Run Date", "Date", "Start hour", "End hour", "Energy Source",
                             "Prediction Source", "Predicted Production (MWh)", "Model Version"]
                             ]
                         st.session_state["past_result_df"] = input_df

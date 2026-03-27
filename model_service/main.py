@@ -184,6 +184,7 @@ async def get_history(
             "model_version": r.ml_model,
             "received_input": {
                 "date": r.predict_date,
+                "input_date": r.input_date,
                 "start_hour": r.input_time_start,
                 "end_hour": r.input_time_end,
                 "energy_source": energy_id_to_name.get(r.energy_source_id),
