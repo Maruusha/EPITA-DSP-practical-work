@@ -4,12 +4,15 @@ import random
 from datetime import datetime
 
 import pandas as pd
-from airflow.sdk import dag, task
+import pendulum
+from airflow.sdk import dag, task, Variable
 from airflow.exceptions import AirflowSkipException
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 import great_expectations as gx
 import great_expectations.expectations as gxe
+import requests
+import logging
 
 from DataValClass import DataValClass
 
@@ -148,7 +151,7 @@ def ingestion_validate_data():
         )
         logging.warning("Result"+str(results))
         bad_indices = set()
-        payload.is_schema_valid = True
+        payload.is_schema_valid = True      
         for r in results.results:
             if not r.success:
                 indices = r.result.get('unexpected_index_list', [])
@@ -189,7 +192,14 @@ def ingestion_validate_data():
         else: 
             # If data has schema error, all data is bad
             payload.bad_records = df.to_dict(orient="records")
-
+        
+         # Generate Data Docs
+        context.build_data_docs()
+        data_docs_sites = context.get_docs_sites_urls()
+        report_path = next(site["site_url"] for site in data_docs_sites if site["site_name"] == "local_site")
+        
+        payload.report_url = report_path
+        
         return payload.model_dump()
 
     # Sending error stats to db 
@@ -241,12 +251,73 @@ def ingestion_validate_data():
             logging.error(f"Failed to save stats to database. Error: {str(e)}")
             raise
 
-    # TODO - Sapal task 
     @task
     def send_alerts(data_to_ingest: dict) -> None:
         if not data_to_ingest:
+            logging.info("No data received. Skipping alert.")
             return {}
-        pass
+        
+        try:
+        
+            logging.info("Starting Teams alert task")
+            # Extract values
+            severity = data_to_ingest.get("error_criticality", "None")
+            error_rate = data_to_ingest.get("error_rate", 0)
+            total_rows = data_to_ingest.get("total_rows", 0)
+            source_file = data_to_ingest.get("source_filename", "N/A")
+            report_url = data_to_ingest.get("report_url", "N/A")
+            is_schema_valid = data_to_ingest.get("is_schema_valid", False)
+
+            error_percent = round(error_rate * 100, 2)
+
+            # Skip LOW and NONE alerts
+            if severity not in ["High", "Medium"]:
+                logging.info(f"No alert sent (severity={severity})")
+                return
+
+            if severity == "High":
+                icon = "🚨"
+                color = "FF0000"
+                title = "Data Quality Alert (Critical)"
+            else:
+                icon = "⚠️"
+                color = "FFA500"
+                title = "Data Quality Alert (Medium)"
+
+            # Retrieve Webhook variable
+            webhook_url = Variable.get("teams_webhook")
+
+            payload = {
+                "@type": "MessageCard",
+                "@context": "http://schema.org/extensions",
+                "summary": title,
+                "themeColor": color,
+                "title": f"{icon} {title}",
+                "sections": [
+                    {
+                        "facts": [
+                            {"name": "Severity:", "value": severity},
+                            {"name": "Schema Valid:", "value": is_schema_valid},
+                            {"name": "Invalid Rows:", "value": f"{error_percent}%"},
+                            {"name": "Total Rows:", "value": total_rows},
+                            {"name": "Source File:", "value": source_file},
+                            {"name": "Report:", "value": report_url}
+                        ]
+                    }
+                ]
+            }
+
+            response = requests.post(webhook_url, json=payload)
+            response.raise_for_status()
+
+            logging.info(
+                f"Teams alert sent | severity={severity} | invalid_rows={error_percent}% | source_file={source_file} | report={report_url}"
+            )
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Failed to send Teams alert: {e}")
+            raise
+
 
     @task
     def split_and_save_data(data_to_ingest: dict) -> None:
