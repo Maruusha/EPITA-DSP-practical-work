@@ -17,7 +17,7 @@ col_list = ['Date', 'Start_Hour', 'End_Hour', 'Source', 'Day_of_Year', 'Day_Name
 
 # List of all files in raw_data
 files = [f for f in os.listdir(dataset_path) if f.endswith('.csv')]
-files = random.sample(files, 3)
+files = random.sample(files, num_corrupt_files)
 print("List of dropped cols: " + str(files))
 
 # SCHEMA ERROR
