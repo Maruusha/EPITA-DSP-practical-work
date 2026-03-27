@@ -5,10 +5,11 @@ from datetime import datetime
 
 import pandas as pd
 from airflow.sdk import dag, task
+from airflow.exceptions import AirflowSkipException
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+
 import great_expectations as gx
 import great_expectations.expectations as gxe
-
-from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 from DataValClass import DataValClass
 
@@ -20,11 +21,11 @@ VALID_SOURCES = ['Wind', 'Solar', 'Mixed']
 COLUMNS = ['Date', 'Start_Hour', 'End_Hour', 'Source', 'Day_of_Year', 'Day_Name', 'Month_Name', 'Season', 'Production']
 
 @dag(
-    dag_id='ingestion_validate_data',
+    dag_id='ingestion_validate_data_v1',
     description='Ingest data from a file in raw_data folder, validate and process it',
     tags=['dsp', 'data_ingestion', 'ingestion_validate_data'],
-    schedule="*/3 * * * *",
-    start_date=datetime(2024, 1, 1),  # sets the starting point of the DAG
+    schedule="*/5 * * * *",
+    start_date=datetime(2026, 1, 1),  # sets the starting point of the DAG
     max_active_runs=1,  # Ensure only one active run at a time
     catchup=False
 )
@@ -37,13 +38,16 @@ def ingestion_validate_data():
             filename = random.choice(csv_files)
             full_path = os.path.join(folderpath, filename)
 
-            data_to_ingest_df = pd.read_csv(full_path)
+            data_to_ingest_df = pd.read_csv(full_path, dtype=str)
             df_row_len = data_to_ingest_df.shape[0]
             logging.info(f'Extract {df_row_len} rows from the file {filename}')
 
+            # Delete the file
+            os.remove(full_path)
+
             # Handle empty file
             if df_row_len < 1:
-                return {}
+                raise AirflowSkipException("File empty!!")
             
             data_obj = DataValClass(
                         records=data_to_ingest_df.to_dict(orient="records"),
@@ -51,10 +55,10 @@ def ingestion_validate_data():
                         is_processed=False,
                         total_rows=len(data_to_ingest_df)
                     )
-
             return data_obj.model_dump() 
         else: 
-            return {}
+            logging.warning("No CSV files found in raw_data folder. Skipping run.")
+            raise AirflowSkipException("No file found!!")
 
     @task
     def validate_data(data_to_ingest: dict) -> dict:
@@ -70,15 +74,11 @@ def ingestion_validate_data():
         try:
             suite = context.suites.get(name=suite_name)
         except:
-            suite = context.suites.add_or_update(gx.ExpectationSuite(name=suite_name))
+            suite = context.suites.add(gx.ExpectationSuite(name=suite_name))
 
-        suite.add_expectation(gxe.ExpectTableColumnsToMatchSet(column_set=COLUMNS))
+        suite.add_expectation(gxe.ExpectTableColumnsToMatchSet(column_set=COLUMNS, exact_match=True))
         for col in COLUMNS:
             suite.add_expectation(gxe.ExpectColumnValuesToNotBeNull(column=col))
-        for col in ['Start_Hour', 'End_Hour', 'Day_of_Year', 'Production']:
-            suite.add_expectation(gxe.ExpectColumnValuesToBeInTypeList(
-                column=col, type_list=['int', 'float', 'int64', 'float64']
-            ))
         suite.add_expectation(gxe.ExpectColumnValuesToBeInSet(column='Day_Name', value_set=VALID_DAYS))
         suite.add_expectation(gxe.ExpectColumnValuesToBeInSet(column='Month_Name', value_set=VALID_MONTHS))
         suite.add_expectation(gxe.ExpectColumnValuesToBeInSet(column='Season', value_set=VALID_SEASONS))
@@ -90,18 +90,39 @@ def ingestion_validate_data():
         suite.add_expectation(gxe.ExpectColumnValuesToMatchStrftimeFormat(column="Date", strftime_format="%m/%d/%Y"))
 
         datasource = context.data_sources.add_or_update_pandas(name="my_pandas_datasource")
-        asset = datasource.add_or_update_dataframe_asset(name="my_df_asset")
-        batch_definition = asset.get_or_add_batch_definition_whole_dataframe("my_batch")
+        try:
+            asset = datasource.get_asset(name="my_df_asset")
+            logging.info("Found existing GX Asset.")
+        except:
+            asset = datasource.add_dataframe_asset(name="my_df_asset")
+            logging.info("Created new GX Asset.")
 
-        validation_definition = context.validation_definitions.add_or_update(
+        try:
+            batch_definition = asset.get_batch_definition("my_batch")
+            logging.info(f"Found existing Batch Definition")
+        except (LookupError, KeyError):
+            batch_definition = asset.add_batch_definition_whole_dataframe("my_batch")
+            logging.info(f"Created new Batch Definition")
+
+        # ValidationDefinition - delete and recreate
+        try:
+            context.validation_definitions.delete("my_validation")
+        except:
+            pass
+        validation_definition = context.validation_definitions.add(
             gx.ValidationDefinition(
                 name="my_validation",
                 data=batch_definition,
                 suite=suite,
             )
         )
-        # Create or update the Checkpoint
-        context.checkpoints.add_or_update(
+
+        # Checkpoint - delete and recreate
+        try:
+            context.checkpoints.delete("my_checkpoint")
+        except:
+            pass
+        context.checkpoints.add(
             gx.Checkpoint(
                 name="my_checkpoint",
                 validation_definitions=[validation_definition],
@@ -118,6 +139,9 @@ def ingestion_validate_data():
                 bad_indices.update(indices)
             if r.expectation_config.type == "expect_table_columns_to_match_set":
                 payload.is_schema_valid = r.success
+                if not r.success:
+                    payload.schema_missing_column = list(set(COLUMNS) - set(df.columns.tolist()))
+                    payload.schema_missing_column_count = len(payload.schema_missing_column)
 
         payload.error_count = len(bad_indices)
         payload.error_rate = payload.error_count / payload.total_rows
@@ -134,8 +158,12 @@ def ingestion_validate_data():
         payload.is_processed = True
         bad_df = df.iloc[list(bad_indices)]
         good_df = df.drop(index=list(bad_indices))
-        payload.bad_records = bad_df.to_dict(orient="records")
-        payload.good_records = good_df.to_dict(orient="records")
+        if payload.is_schema_valid:
+            payload.bad_records = bad_df.to_dict(orient="records")
+            payload.good_records = good_df.to_dict(orient="records")
+        else: 
+            # If data has schema error, all data is bad
+            payload.bad_records = good_df.to_dict(orient="records")
 
         return payload.model_dump()
 
