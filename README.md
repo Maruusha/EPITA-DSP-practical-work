@@ -54,7 +54,7 @@ Install the following before running the project:
 ### 1. Clone the repository
 
 ```bash
-git clone <paste-your-repository-url-here>
+git clone https://github.com/Maruusha/EPITA-DSP-practical-work.git
 cd EPITA-DSP-practical-work
 ```
 
@@ -172,13 +172,25 @@ If entries exist in `predictions` and `data_quality_stats`, the project is savin
 
 ## Stopping the Project
 
-Stop the running containers:
+| Command | Stops Containers? | Removes Containers? | Removes Networks? | Removes Volumes? |
+|---|---|---|---|---|
+| `docker compose stop` | ✅ Yes | ❌ No | ❌ No | ❌ No |
+| `docker compose down` | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
+| `docker compose down -v` | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
+
+Use this command to stop containers without removing any Docker resources:
+
+```bash
+docker compose stop
+```
+
+Use this command to stop and remove containers and networks, but keep persistent volumes:
 
 ```bash
 docker compose down
 ```
 
-To remove volumes and reset the database state completely:
+Use this command to stop and remove containers, networks, and volumes (reset database state completely):
 
 ```bash
 docker compose down -v
