@@ -23,7 +23,7 @@ VALID_SOURCES = ['Wind', 'Solar', 'Mixed']
 COLUMNS = ['Date', 'Start_Hour', 'End_Hour', 'Source', 'Day_of_Year', 'Day_Name', 'Month_Name', 'Season', 'Production']
 
 @dag(
-    dag_id='ingestion_validate_data',
+    dag_id='ingestion_validate_data_v1',
     description='Ingest data from a file in raw_data folder, validate and process it',
     tags=['dsp', 'data_ingestion', 'ingestion_validate_data'],
     schedule="*/5 * * * *",
