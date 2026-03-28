@@ -5,7 +5,7 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 import os
 
-USE_TEMP_MODEL = True
+USE_TEMP_MODEL = False
 
 class EnergyModel(ABC):
     version: str

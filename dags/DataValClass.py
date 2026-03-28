@@ -14,6 +14,7 @@ class DataValClass(BaseModel):
 
     
     # Validation info
+    report_url: str =""
     is_schema_valid: bool = True
     schema_missing_column: List[str] = []
     schema_missing_column_count: int = 0
