@@ -4,8 +4,16 @@ import os
 import random
 from datetime import datetime, timedelta
 
-dataset_path = 'raw_data'
-output_folder = 'bad_data'
+# save incase needed
+# dataset_path = 'raw_data'
+# output_folder = 'raw_data'
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+dataset_path = os.path.join(base_dir, 'raw_data')
+ 
+output_folder = os.path.join(base_dir, 'raw_data')
+os.makedirs(output_folder, exist_ok=True)
+
 ERROR_PERCENTAGE = 0.15  # min 0 max 1
 
 # Define the possible error types (excluding Schema which is File-level)
