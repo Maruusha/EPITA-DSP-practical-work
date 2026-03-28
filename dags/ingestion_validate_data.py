@@ -4,7 +4,6 @@ import random
 from datetime import datetime
 
 import pandas as pd
-import pendulum
 from airflow.sdk import dag, task, Variable
 from airflow.exceptions import AirflowSkipException
 from airflow.providers.postgres.hooks.postgres import PostgresHook

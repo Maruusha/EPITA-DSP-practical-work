@@ -11,6 +11,7 @@ with DAG(
     dag_id="prediction_job",
     start_date=datetime(2024, 1, 1),
     schedule="*/2 * * * *",
+    max_active_runs = 1,
     catchup=False
 ) as dag:
 
