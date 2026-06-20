@@ -1,0 +1,448 @@
+{
+  "expectations": [
+    {
+      "id": "4e132408-c523-4ead-9823-68df6673df35",
+      "kwargs": {
+        "column_set": [
+          "Date",
+          "Start_Hour",
+          "End_Hour",
+          "Source",
+          "Day_of_Year",
+          "Day_Name",
+          "Month_Name",
+          "Season",
+          "Production"
+        ]
+      },
+      "meta": {},
+      "type": "expect_table_columns_to_match_set"
+    },
+    {
+      "id": "4ab4b5ad-4208-4b00-bf4d-2a36fdc78a71",
+      "kwargs": {
+        "column": "Date"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "bdb638f9-f016-4891-957a-d556851340ca",
+      "kwargs": {
+        "column": "Date"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "17df292c-062f-4ba2-a8f2-b404423ed945",
+      "kwargs": {
+        "column": "Start_Hour"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "82206676-9b7e-4379-9de8-ff7223dc64a8",
+      "kwargs": {
+        "column": "Start_Hour"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "dcf3f4a9-5ebf-4ad4-85ec-5f7cc8599d90",
+      "kwargs": {
+        "column": "End_Hour"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "30e97eb0-3249-4245-b050-87b737316a57",
+      "kwargs": {
+        "column": "End_Hour"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "9510eee8-79a2-4420-a782-0776358ea715",
+      "kwargs": {
+        "column": "Source"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "9f6de2b5-1e33-462a-8dd6-3c27db7e1e59",
+      "kwargs": {
+        "column": "Source"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "b61d80d4-491a-4348-bff7-ae1b84a63173",
+      "kwargs": {
+        "column": "Day_of_Year"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "426942ed-196e-4873-9de5-5a38acf5511a",
+      "kwargs": {
+        "column": "Day_of_Year"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "575b2088-9da4-4919-8bc8-2a5defe53e72",
+      "kwargs": {
+        "column": "Day_Name"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "d543ee61-705e-461e-9734-a620ad0b5a67",
+      "kwargs": {
+        "column": "Day_Name"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "ba2b8e8b-d4e0-4c19-8e3d-6f2d35523ec2",
+      "kwargs": {
+        "column": "Month_Name"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "839493fc-7802-414b-b7ed-18c89d133cd7",
+      "kwargs": {
+        "column": "Month_Name"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "2fd16408-78be-49c9-8acd-268210df26a4",
+      "kwargs": {
+        "column": "Season"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "a792f1b1-1379-4596-9109-8a5d770dfdca",
+      "kwargs": {
+        "column": "Season"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "c2a1aa9f-d44e-4c70-bcdf-bb9574a880f7",
+      "kwargs": {
+        "column": "Production"
+      },
+      "meta": {},
+      "type": "expect_column_to_exist"
+    },
+    {
+      "id": "fa2b807d-f69b-4c65-8369-108b5c4bce89",
+      "kwargs": {
+        "column": "Production"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "a9a17267-26f3-40f9-9863-24afd7686757",
+      "kwargs": {
+        "column": "Day_Name",
+        "value_set": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ]
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "68c267ea-fc18-471b-9293-2c72856032cd",
+      "kwargs": {
+        "column": "Month_Name",
+        "value_set": [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December"
+        ]
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "fa448863-707d-4bb5-8036-0ffd234e1ee2",
+      "kwargs": {
+        "column": "Season",
+        "value_set": [
+          "Spring",
+          "Summer",
+          "Fall",
+          "Winter"
+        ]
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "4504382a-1298-4089-92ca-f62d736d2a04",
+      "kwargs": {
+        "column": "Source",
+        "value_set": [
+          "Wind",
+          "Solar",
+          "Mixed"
+        ]
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_in_set"
+    },
+    {
+      "id": "eb4c1513-aae7-496f-9c07-c4e136086048",
+      "kwargs": {
+        "column": "Start_Hour",
+        "max_value": 24.0,
+        "min_value": 0.0
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "35aa14b2-5ca9-4440-a254-a1a8657243a8",
+      "kwargs": {
+        "column": "End_Hour",
+        "max_value": 24.0,
+        "min_value": 0.0
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "4ea16963-e70b-4e77-8426-e94863f39e8f",
+      "kwargs": {
+        "column": "Day_of_Year",
+        "max_value": 366.0,
+        "min_value": 1.0
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "ffbde289-74f0-4370-99aa-34635ff52a6e",
+      "kwargs": {
+        "column": "Production",
+        "max_value": 25000.0,
+        "min_value": 0.0
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "db55d460-5208-40bd-ad16-b257b9f5b6a0",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T14:55:16.278973",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "2b1263dd-b5c3-48db-a985-c063ac8355f4",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T14:55:49.818840",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "f5b2b063-3612-4788-a9e9-a42bdfff9397",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:00:14.651019",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "118a750f-cc63-4084-b55f-c943c4b10da5",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:05:15.757995",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "fc621d33-894b-4679-814e-01980c8cc478",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:10:15.659802",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "caca6aa9-2ceb-4f83-a83b-71313e13470f",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:15:15.421048",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "9e9891d7-2ae1-4b1e-afe2-280f314b7cf0",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:20:16.681209",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "ad5966cf-2175-4929-805a-2f49e9b8ab4d",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:25:16.929323",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "070c0c8d-36e0-4d41-aa3a-b140cd29c2a4",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:30:18.063571",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "f5460a24-71e6-4be7-89a2-db147a5ae4e6",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:37:36.253962",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "f99e458e-fe49-455c-885f-a217fa217b12",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:40:17.363258",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "bf6c8b83-70ce-4741-8e12-fe74273d507c",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:43:41.820001",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "23e2c555-5e54-4dbf-8cdf-f95eebfbc923",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:45:19.700833",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "68219b33-253f-4dbf-9c51-0ea16c319827",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:50:14.490138",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "8fde4840-f3f3-4e94-84ca-b252b236eb72",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T15:55:16.760618",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "543c79d9-1115-4709-bfca-d833f152adc9",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T16:00:13.873251",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "78a877f8-985b-4171-a1a3-9ecf9ab5d991",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T16:03:35.998141",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    }
+  ],
+  "id": "7d2baad1-c93f-4ed8-8ac3-4dfe0a3f210d",
+  "meta": {
+    "great_expectations_version": "1.3.0"
+  },
+  "name": "dsp_validation_suite",
+  "notes": null
+}
