@@ -224,3 +224,5 @@ dags/logs/
 /gx/plugins/
 
 /dags/logs/
+
+gx/
