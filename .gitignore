@@ -221,5 +221,3 @@ dags/logs/
 /data/archived_data/*.txt
 
 /dags/logs/
-
-gx/
