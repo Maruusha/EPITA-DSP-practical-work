@@ -34,7 +34,23 @@ services:
       retries: 5
     volumes:
       - postgres-db-volume:/var/lib/postgresql
-      
+
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.11.3
+    container_name: mlflow_server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow-artifacts:/mlflow/artifacts
+    command: >
+      mlflow server 
+      --backend-store-uri sqlite:////mlflow/artifacts/mlflow.db 
+      --default-artifact-root /mlflow/artifacts 
+      --host 0.0.0.0
+    restart: always
+
+
   fastapi:
     build: ./model_service
     image: tiagolow/fastapi
@@ -46,6 +62,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - AIRFLOW_DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@host:5432/${AIRFLOW_DB_NAME}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
     depends_on:
       db:
         condition: service_healthy

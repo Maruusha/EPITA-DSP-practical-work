@@ -2,3 +2,4 @@ sqlalchemy==2.0.47
 psycopg2-binary==2.9.11
 pandas==2.2.0
 scikit-learn==1.6.1
+mlflow>=2.11.3
