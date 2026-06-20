@@ -220,9 +220,9 @@ def ingestion_validate_data():
             # The SQL Insert matching your new database columns
             insert_sql = """
                 INSERT INTO data_quality_stats (
-                    file_name, total_rows, error_count, error_rate, is_schema_valid, error_criticality
+                    file_name, total_rows, error_count, error_rate, is_schema_valid, error_criticality, ingestion_timestamp
                 ) VALUES (
-                    %(file_name)s, %(total_rows)s, %(error_count)s, %(error_rate)s, %(is_schema_valid)s, %(error_criticality)s
+                    %(file_name)s, %(total_rows)s, %(error_count)s, %(error_rate)s, %(is_schema_valid)s, %(error_criticality)s, CURRENT_TIMESTAMP
                 );
             """
 
