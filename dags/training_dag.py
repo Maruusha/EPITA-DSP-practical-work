@@ -28,7 +28,7 @@ from sklearn.metrics import mean_squared_log_error
 GOOD_DATA_DIR = "/opt/airflow/data/good_data/"
 ARCHIVED_DATA_DIR = "/opt/airflow/data/archived_data/"
 TEMP_DATA_DIR = "/tmp/airflow_temp/"
-MIN_ROWS_FOR_TRAINING = 500  
+MIN_ROWS_FOR_TRAINING = 500
 MODEL_NAME = "RenewableEnergyModel"
 MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
 
@@ -38,7 +38,7 @@ mlflow.set_tracking_uri(MLFLOW_URI)
 @dag(
     dag_id="training_job_v1",
     description="Train, evaluate, and promote ML models via MLflow",
-    schedule="0 2 * * 0", 
+    schedule="0 2 * * 0",
     start_date=datetime(2026, 1, 1),
     max_active_runs=1,
     catchup=False,
@@ -50,9 +50,9 @@ def ml_training_pipeline():
     def load_data() -> dict:
         logger = logging.getLogger("airflow.task")
         os.makedirs(TEMP_DATA_DIR, exist_ok=True)
-        
+
         csv_files = [f for f in os.listdir(GOOD_DATA_DIR) if f.endswith('.csv')]
-        
+
         if not csv_files:
             raise AirflowSkipException("No new data found in good_data directory. Skipping training.")
 
@@ -65,22 +65,22 @@ def ml_training_pipeline():
 
         combined_df = pd.concat(df_list, ignore_index=True)
         total_rows = len(combined_df)
-        
+
         if total_rows < MIN_ROWS_FOR_TRAINING:
             raise AirflowSkipException(f"Only {total_rows} rows available. Require {MIN_ROWS_FOR_TRAINING}.")
 
         logger.info(f"Aggregated {total_rows} rows from {len(csv_files)} files.")
-        
+
         temp_filepath = os.path.join(TEMP_DATA_DIR, "current_training_data.csv")
         combined_df.to_csv(temp_filepath, index=False)
-        
+
         return {"temp_data_path": temp_filepath, "processed_files": files_to_archive}
 
     @task
     def train_model(data_info: dict) -> dict:
         logger = logging.getLogger("airflow.task")
         df = pd.read_csv(data_info["temp_data_path"])
-        
+
         # 1. Define Features (Exact match to train_evaluate.py)
         features = ['Start_Hour', 'End_Hour', 'Source', 'Month_Name', 'Season', 'Day_of_Year', 'Day_Name']
         X = df[features]
@@ -103,9 +103,9 @@ def ml_training_pipeline():
         )
 
         final_model = RandomForestRegressor(
-            n_estimators=100, 
-            max_depth=12, 
-            min_samples_leaf=2, 
+            n_estimators=100,
+            max_depth=12,
+            min_samples_leaf=2,
             random_state=42
         )
 
@@ -120,22 +120,22 @@ def ml_training_pipeline():
         with mlflow.start_run() as run:
             logger.info("Training Random Forest model (100 trees)...")
             pipeline.fit(X_train, y_train)
-            
+
             preds = pipeline.predict(X_test)
             preds = np.clip(preds, 0, None)
-            
+
             rmsle = np.sqrt(mean_squared_log_error(y_test, preds))
             logger.info(f"Final Model RMSLE: {rmsle:.4f}")
 
             mlflow.log_metric("rmsle", rmsle)
             mlflow.log_params({"n_estimators": 100, "max_depth": 12, "min_samples_leaf": 2})
-            
+
             mlflow.sklearn.log_model(
                 sk_model=pipeline,
                 artifact_path="model",
                 registered_model_name=MODEL_NAME
             )
-            
+
             run_id = run.info.run_id
 
         return {
@@ -149,11 +149,11 @@ def ml_training_pipeline():
     def save_training_stats(train_info: dict) -> dict:
         logger = logging.getLogger("airflow.task")
         df = pd.read_csv(train_info["temp_data_path"])
-        
+
         production_mean = float(df['Production'].mean())
         production_std = float(df['Production'].std())
         solar_percentage = float((df['Source'] == 'Solar').mean() * 100)
-        
+
         hook = PostgresHook(postgres_conn_id='postgres_default')
         insert_sql = """
             INSERT INTO training_statistics (
@@ -174,7 +174,7 @@ def ml_training_pipeline():
     def evaluate_candidate(train_info: dict) -> dict:
         logger = logging.getLogger("airflow.task")
         client = MlflowClient()
-        
+
         # 1. Cast NumPy float to standard Python float
         candidate_rmsle = float(train_info["candidate_rmsle"])
 
@@ -206,28 +206,31 @@ def ml_training_pipeline():
 
         if not eval_info["should_promote"]:
             logger.warning("Candidate failed to beat Champion. Skipping promotion.")
-            
+
             # Safe Variable get for Airflow 3 SDK
             try:
                 webhook_url = Variable.get("teams_webhook")
             except Exception:
                 webhook_url = None
-                
+
             if webhook_url:
                 payload = {
                     "@type": "MessageCard",
                     "themeColor": "FF0000",
                     "title": "ML Model Promotion Failed",
-                    "text": f"Candidate RMSLE ({eval_info['candidate_rmsle']:.4f}) was worse than Champion ({eval_info['champion_rmsle']:.4f})."
+                    "text": (
+                        f"Candidate RMSLE ({eval_info['candidate_rmsle']:.4f}) "
+                        f"was worse than Champion ({eval_info['champion_rmsle']:.4f})."
+                    ),
                 }
                 requests.post(webhook_url, json=payload)
-                
+
             raise AirflowSkipException("Candidate model rejected.")
 
         logger.info("Candidate beat Champion! Promoting to @champion alias.")
         versions = client.search_model_versions(f"name='{MODEL_NAME}'")
         target_version = next(v for v in versions if v.run_id == eval_info["run_id"])
-        
+
         client.set_registered_model_alias(name=MODEL_NAME, alias="champion", version=target_version.version)
         return eval_info
 
@@ -244,9 +247,8 @@ def ml_training_pipeline():
 
     @task
     def archive_data(promotion_info: dict):
-        logger = logging.getLogger("airflow.task")
         os.makedirs(ARCHIVED_DATA_DIR, exist_ok=True)
-        
+
         for filename in promotion_info["processed_files"]:
             src = os.path.join(GOOD_DATA_DIR, filename)
             dst = os.path.join(ARCHIVED_DATA_DIR, filename)
@@ -259,7 +261,8 @@ def ml_training_pipeline():
     stats_res = save_training_stats(train_res)
     eval_res = evaluate_candidate(stats_res)
     promotion_res = promote_to_champion(eval_res)
-    
+
     promotion_res >> [notify_api_reload(promotion_res), archive_data(promotion_res)]
+
 
 training_job = ml_training_pipeline()

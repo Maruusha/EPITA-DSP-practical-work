@@ -3,7 +3,7 @@ import os
 from db_utility import EnergySource, SessionLocal
 from sqlalchemy.dialects.postgresql import insert
 
-#Creating airflow databases if not exist
+# Creating airflow databases if not exist
 AIRFLOW_DATABASE_URL = os.getenv("AIRFLOW_DATABASE_URL")
 db_utility.create_database_if_not_exists(AIRFLOW_DATABASE_URL)
 
@@ -32,8 +32,6 @@ try:
     session.commit()
 
     print("Energy sources uploaded/verified successfully.")
-
-
 
 except Exception as e:
     # The Safety Valve: If anything crashes, undo all partial changes
