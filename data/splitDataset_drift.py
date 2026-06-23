@@ -7,12 +7,12 @@ import os
 # output_folder = 'raw_data'       
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-dataset_path = os.path.join(base_dir, 'Energy Production Dataset.csv')
+dataset_path = os.path.join(base_dir, 'Energy_Production_Drift.csv')
  
 output_folder = os.path.join(base_dir, 'raw_data')
 os.makedirs(output_folder, exist_ok=True)
 
-num_files = 15               
+num_files = 5               
 
 # Load the dataset
 df = pd.read_csv(dataset_path)
@@ -28,7 +28,7 @@ chunks = np.array_split(df_shuffled, num_files)
 # 4. Save each chunk to the output folder
 original_columns = df_shuffled.columns
 for i, chunk in enumerate(chunks):
-    file_name = f"split_data_{i+1}.csv"
+    file_name = f"split_data_{i+1}_drift.csv"
     file_path = os.path.join(output_folder, file_name)
     df_chunk = pd.DataFrame(chunk, columns=original_columns)
     df_chunk.to_csv(file_path, index=False)
