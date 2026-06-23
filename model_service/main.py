@@ -1,11 +1,11 @@
-from datetime import datetime, date, timezone
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import Optional
 from fastapi import FastAPI, HTTPException, Query, Request, Depends
-from pydantic import BaseModel, model_validator, field_validator
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 import predict
 import db_utility
+from schemas import PredictionInput, Prediction, PredictionResponse
 
 # Set the max number of input for each batch request
 MAX_BATCH_SIZE = 100
@@ -15,63 +15,22 @@ MAX_BATCH_SIZE = 100
 async def lifespan(app: FastAPI):
     # Load model on startup using Lifesplan
     app.state.model = predict.load_model()
-    
+
     # Query energy_source table and use it for reference later
     db = next(db_utility.get_db())
     try:
         records = db_utility.get_all_energy_sources(db)
         app.state.energy_source_map = {row.source_type: row.id for row in records}
     finally:
-        db.close()    
+        db.close()
     yield
+
 
 # Initialize app using the lifespan
 app = FastAPI(
     title="Renewable Energy Production Prediction Service",
     lifespan=lifespan
 )
-
-# --- Pydantic Models ---
-class PredictionInput(BaseModel):
-    date: date
-    start_hour: int
-    end_hour: int
-    energy_source: str
-    prediction_source: str
-    
-    @field_validator("energy_source")
-    def validate_energy_source(cls, v):
-        if not v.strip():
-            raise ValueError("energy_source cannot be empty")
-        return v
-
-    @field_validator("prediction_source")
-    def validate_prediction_source(cls, v):
-        if not v.strip():
-            raise ValueError("prediction_source cannot be empty")
-        return v
-
-    @field_validator("start_hour", "end_hour")
-    def validate_hour_range(cls, v):
-        if not 0 <= v <= 23:
-            raise ValueError("must be between 0 and 23")
-        return v
-
-    @model_validator(mode="after")
-    def validate_hour_order(self):
-        if self.start_hour >= self.end_hour:
-            raise ValueError("start_hour must be smaller than end_hour")
-        return self
-       
-
-class Prediction(BaseModel):
-    production: float
-    model_version: str
-    received_input: PredictionInput
-    
-class PredictionResponse(BaseModel):
-    status: str = "success"
-    predictions: List[Prediction]
 
 # --- Health Endpoints ---
 @app.get("/health")

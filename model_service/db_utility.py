@@ -11,6 +11,8 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -19,7 +21,7 @@ class Base(DeclarativeBase):
 class EnergySource(Base):
     __tablename__ = "energy_sources"
     id = Column(Integer, primary_key=True)
-    source_type = Column(String, unique = True, nullable = False)  # Solar, Wind, Mix, etc.
+    source_type = Column(String, unique=True, nullable=False)  # Solar, Wind, Mix, etc.
 
 class PredictionRecord(Base):
     __tablename__ = "predictions"
@@ -74,12 +76,12 @@ def save_predictions_batch(db: Session, records_data: list):
         db_records = [PredictionRecord(**data) for data in records_data]
         db.add_all(db_records)
         db.commit()
-    except:
+    except Exception:
         db.rollback()
         raise
 
 
-def query_predictions(db: Session, ml_model=None, prediction_source=None,energy_source_id=None, start_date=None, end_date=None, limit=100):
+def query_predictions(db: Session, ml_model=None, prediction_source=None, energy_source_id=None, start_date=None, end_date=None, limit=100):
     query = db.query(PredictionRecord)
     if ml_model is not None:
         query = query.filter(PredictionRecord.ml_model == ml_model)

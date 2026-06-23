@@ -11,9 +11,9 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 import great_expectations as gx
 import great_expectations.expectations as gxe
 import requests
-import logging
 
 from DataValClass import DataValClass
+from validation_utils import compute_criticality, compute_error_stats, split_records
 
 # Reference lists for validation
 VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -132,7 +132,7 @@ def ingestion_validate_data():
             )
         )
 
-        checkpoint_name = f"checkpoint_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}"
+        checkpoint_name = f"checkpoint_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}"
         checkpoint = context.checkpoints.add(
             gx.Checkpoint(
                 name=checkpoint_name,
@@ -156,20 +156,10 @@ def ingestion_validate_data():
                     payload.schema_missing_column = list(set(COLUMNS) - set(df.columns.tolist()))
                     payload.schema_missing_column_count = len(payload.schema_missing_column)
 
-        payload.error_count = len(bad_indices)
-        payload.error_rate = payload.error_count / payload.total_rows
-        if not payload.is_schema_valid:
-            payload.error_count = payload.total_rows
-            payload.error_rate = 1
-
-        if not payload.is_schema_valid or payload.error_rate > 0.50:
-            payload.error_criticality = "High"
-        elif 0.10 <= payload.error_rate <= 0.50:
-            payload.error_criticality = "Medium"
-        elif 0 < payload.error_rate < 0.10:
-            payload.error_criticality = "Low"
-        else:
-            payload.error_criticality = "None"
+        payload.error_count, payload.error_rate = compute_error_stats(
+            bad_indices, payload.total_rows, payload.is_schema_valid
+        )
+        payload.error_criticality = compute_criticality(payload.error_rate, payload.is_schema_valid)
 
         # Convert back the cols
         if 'Date' in df.columns:
@@ -178,14 +168,7 @@ def ingestion_validate_data():
         df = df.astype(object).where(pd.notna(df), None)
 
         payload.is_processed = True
-        bad_df = df.iloc[list(bad_indices)]
-        good_df = df.drop(index=list(bad_indices))
-        if payload.is_schema_valid:
-            payload.bad_records = bad_df.to_dict(orient="records")
-            payload.good_records = good_df.to_dict(orient="records")
-        else: 
-            # If data has schema error, all data is bad
-            payload.bad_records = df.to_dict(orient="records")
+        payload.good_records, payload.bad_records = split_records(df, bad_indices, payload.is_schema_valid)
         
          # Generate Data Docs
         context.build_data_docs()
