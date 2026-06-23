@@ -12,7 +12,7 @@ dataset_path = os.path.join(base_dir, 'Energy Production Dataset.csv')
 output_folder = os.path.join(base_dir, 'raw_data')
 os.makedirs(output_folder, exist_ok=True)
 
-num_files = 10               
+num_files = 50               
 
 # Load the dataset
 df = pd.read_csv(dataset_path)

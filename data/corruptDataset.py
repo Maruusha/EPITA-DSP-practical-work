@@ -57,11 +57,13 @@ for file_name in os.listdir(dataset_path):
                 df.at[idx, target_col] = "xyz"
 
             elif error == 'impossibleValue':
+                df['Production'] = df['Production'].astype(object)
                 df.at[idx, 'Production'] = -100
                 df.at[idx, 'Date'] = two_years_from_now
 
             elif error == 'outlier':
-                df.at[idx, 'Production'] = 40000 
+                df['Production'] = df['Production'].astype(object)
+                df.at[idx, 'Production'] = 40000
 
     # SHUFFLE THE ROWS
     df = df.sample(frac=1).reset_index(drop=True)
