@@ -73,6 +73,11 @@ class PredictionResponse(BaseModel):
     status: str = "success"
     predictions: List[Prediction]
 
+class ReloadResponse(BaseModel):
+    status: str
+    message: str
+    active_version: str
+
 # --- Health Endpoints ---
 @app.get("/health")
 async def health():
@@ -91,7 +96,7 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
 
     # safety check
     if model is None:
-        raise HTTPException(status_code=500, detail="Prediction model not loaded")	
+        raise HTTPException(status_code=500, detail="Prediction model not loaded")  
 
     try:
         predictions = []
@@ -148,6 +153,31 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
         raise HTTPException(
             status_code=500,
             detail="Prediction failed due to internal error"
+        )
+
+
+# --- Model Reload Endpoint ---
+@app.post("/reload-model", response_model=ReloadResponse)
+async def reload_model(request: Request):
+    """
+    Triggered by Airflow after a successful model promotion.
+    Forces the API to fetch the latest @champion from MLflow.
+    """
+    try:
+        # Reload the model using the updated predict.py logic
+        request.app.state.model = predict.load_model()
+        
+        model_version = getattr(request.app.state.model, "version", "unknown")
+        
+        return ReloadResponse(
+            status="success", 
+            message="Model successfully hot-swapped from MLflow Registry.",
+            active_version=model_version
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to reload model from MLflow: {str(e)}"
         )
 
 

@@ -223,3 +223,6 @@ dags/logs/
 /dags/logs/
 
 gx/
+
+mlflow-artifacts/
+/tmp/airflow_temp/

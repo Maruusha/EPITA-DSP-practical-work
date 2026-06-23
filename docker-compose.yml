@@ -15,6 +15,7 @@ x-airflow-common:
     - ./data/bad_data:/opt/airflow/data/bad_data
     - ./data/raw_data:/opt/airflow/data/raw_data
     - ./data/archived_data:/opt/airflow/data/archived_data
+    - ./mlflow-artifacts:/mlflow/artifacts
   user: "${AIRFLOW_UID}:0"
 
 services:
@@ -57,6 +58,8 @@ services:
     container_name: fastapi
     ports:
       - "8080:80"
+    volumes:
+      - ./mlflow-artifacts:/mlflow/artifacts  # <--- ADD THIS LINE TO MOUNT THE SHARED TRACKING FOLDER
     env_file:
       - .env
     environment:
@@ -153,9 +156,11 @@ services:
       - -c
       - |
         mkdir -p /opt/airflow/{logs,dags}
+        mkdir -p /mlflow/artifacts
         /entrypoint airflow config list >/dev/null
         chown -R "${AIRFLOW_UID}:0" /opt/airflow/
         chown -v -R "${AIRFLOW_UID}:0" /opt/airflow/{logs,dags}
+        chown -v -R "${AIRFLOW_UID}:0" /mlflow
 
     environment:      
       _AIRFLOW_DB_MIGRATE: 'true'
