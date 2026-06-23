@@ -42,10 +42,6 @@ def test_negative_start_hour_is_invalid():
         )
 
 
-# ---------------------------------------------------------------------------
-# PredictionInput — hour order validation
-# ---------------------------------------------------------------------------
-
 def test_start_hour_equal_to_end_hour_is_invalid():
     with pytest.raises(ValidationError):
         PredictionInput(
@@ -68,10 +64,6 @@ def test_start_hour_greater_than_end_hour_is_invalid():
         )
 
 
-# ---------------------------------------------------------------------------
-# PredictionInput — string field validation
-# ---------------------------------------------------------------------------
-
 def test_blank_energy_source_is_invalid():
     with pytest.raises(ValidationError):
         PredictionInput(
@@ -93,10 +85,6 @@ def test_blank_prediction_source_is_invalid():
             prediction_source="  ",
         )
 
-
-# ---------------------------------------------------------------------------
-# DataValClass — defaults and construction
-# ---------------------------------------------------------------------------
 
 def test_data_val_class_defaults():
     obj = DataValClass()

@@ -10,6 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import mean_squared_log_error
 
+
 def main():
     print("Starting training pipeline...")
 
@@ -17,7 +18,7 @@ def main():
     # This automatically finds the project root folder regardless of where the script is run
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
-    
+
     data_path = os.path.join(project_root, "data", "Energy Production Dataset.csv")
     model_dir = os.path.join(project_root, "model_service")
     model_output_path = os.path.join(model_dir, "baseline_model.pkl")
@@ -49,15 +50,7 @@ def main():
         remainder='passthrough'
     )
 
-    # # 4. Define Feature Selector and Model
-    ##version 0.3 random forest
-    # feature_selector = SelectFromModel(
-    #     estimator=RandomForestRegressor(n_estimators=50, random_state=42),
-    #     threshold="median"
-    # )
-
-    # final_model = RandomForestRegressor(n_estimators=100, max_depth=15, random_state=42)
-
+    # 4. Define Feature Selector and Model
     # A smarter scout: 30 trees, moderate depth
     feature_selector = SelectFromModel(
         estimator=RandomForestRegressor(n_estimators=30, max_depth=10, random_state=42),
@@ -66,9 +59,9 @@ def main():
 
     # The Goldilocks final model: 100 trees, but depth limited to 12 to prevent bloat
     final_model = RandomForestRegressor(
-        n_estimators=100, 
-        max_depth=12, 
-        min_samples_leaf=2, 
+        n_estimators=100,
+        max_depth=12,
+        min_samples_leaf=2,
         random_state=42
     )
 
@@ -81,10 +74,10 @@ def main():
     # 5. Train and Evaluate
     print("Training Random Forest model (100 trees)...")
     pipeline.fit(X_train, y_train)
-    
+
     preds = pipeline.predict(X_test)
     preds = np.clip(preds, 0, None)
-    
+
     rmsle = np.sqrt(mean_squared_log_error(y_test, preds))
     print(f"Final Model RMSLE: {rmsle:.4f}")
 
@@ -95,6 +88,7 @@ def main():
         pickle.dump(pipeline, f)
 
     print("Pipeline complete.")
+
 
 if __name__ == "__main__":
     main()

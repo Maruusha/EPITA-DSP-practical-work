@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import date, datetime, timezone
+from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query, Request, Depends
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
@@ -22,10 +22,11 @@ def derive_temporal_features(d: date) -> dict:
 
     return {
         "day_of_year": d.timetuple().tm_yday,
-        "day_name": d.strftime("%A"),        # "Monday", "Tuesday", ...
-        "month_name": d.strftime("%B"),      # "January", "February", ...
+        "day_name": d.strftime("%A"),    # "Monday", "Tuesday", ...
+        "month_name": d.strftime("%B"),  # "January", "February", ...
         "season": season,
     }
+
 
 # Set the max number of input for each batch request
 MAX_BATCH_SIZE = 100
@@ -33,7 +34,7 @@ MAX_BATCH_SIZE = 100
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load model on startup using Lifesplan
+    # Load model on startup using lifespan
     app.state.model = predict.load_model()
 
     # Query energy_source table and use it for reference later
@@ -52,25 +53,26 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
 # --- Health Endpoints ---
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
 
 
-# ---  Prediction Endpoint --- 
+# --- Prediction Endpoint ---
 @app.post("/predict", response_model=PredictionResponse)
 async def predict_energy(payload: List[PredictionInput], request: Request, db: Session = Depends(db_utility.get_db)):
 
     if len(payload) > MAX_BATCH_SIZE:
         raise HTTPException(status_code=422, detail=f"Batch size {len(payload)} exceeds maximum of {MAX_BATCH_SIZE}")
-        
+
     model = request.app.state.model
     energy_source_map = request.app.state.energy_source_map
 
     # safety check
     if model is None:
-        raise HTTPException(status_code=500, detail="Prediction model not loaded")	
+        raise HTTPException(status_code=500, detail="Prediction model not loaded")
 
     try:
         predictions = []
@@ -78,27 +80,27 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
         db_pred_records = []
         model_version = getattr(model, "version", "unknown")
         now = datetime.now(timezone.utc)
-        
+
         for row in payload:
-            energy_source_id = energy_source_map.get(row.energy_source)            
+            energy_source_id = energy_source_map.get(row.energy_source)
             if energy_source_id is None:
                 raise HTTPException(status_code=422, detail=f"Unknown energy_source: '{row.energy_source}'")
-            
+
             features = {
                 "date": row.date,
                 "start_hour": row.start_hour,
                 "end_hour": row.end_hour,
                 "energy_source": row.energy_source,
             }
-            
-            prediction = model.predict(features)                
+
+            prediction = model.predict(features)
 
             # prepare response
             predictions.append(
                 Prediction(
                     production=prediction,
                     model_version=model_version,
-                    received_input=row                    
+                    received_input=row
                 )
             )
 
@@ -130,14 +132,13 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
         # write both tables in one transaction
         db_utility.save_input_and_predictions_batch(db, db_input_records, db_pred_records)
 
-        # return the reponses
         return {"status": "success", "predictions": predictions}
 
     except HTTPException:
         raise
 
     except Exception as e:
-        print(f"Prediction error: {e}")  
+        print(f"Prediction error: {e}")
         raise HTTPException(
             status_code=500,
             detail="Prediction failed due to internal error"
@@ -164,8 +165,8 @@ async def get_history(
             raise HTTPException(status_code=404, detail=f"Energy source '{energy_source}' not found")
     records = db_utility.query_predictions(
         db=db,
-        ml_model=ml_model,        
-        energy_source_id= energy_source_id,
+        ml_model=ml_model,
+        energy_source_id=energy_source_id,
         start_date=start_date,
         end_date=end_date,
         prediction_source=prediction_source,

@@ -30,4 +30,4 @@ def split_records(df: pd.DataFrame, bad_indices: set, is_schema_valid: bool) -> 
     good_df = df.drop(index=list(bad_indices))
     if is_schema_valid:
         return good_df.to_dict(orient="records"), bad_df.to_dict(orient="records")
-    return [], df.to_dict(orient="records") # If data has schema error, all data is bad
+    return [], df.to_dict(orient="records")  # If data has schema error, all data is bad

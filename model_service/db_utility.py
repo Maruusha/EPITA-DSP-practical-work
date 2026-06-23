@@ -16,12 +16,15 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 class Base(DeclarativeBase):
     pass
 
+
 # --- Table Definitions ---
+
 
 class EnergySource(Base):
     __tablename__ = "energy_sources"
     id = Column(Integer, primary_key=True)
     source_type = Column(String, unique=True, nullable=False)  # Solar, Wind, Mix, etc.
+
 
 class InputData(Base):
     """Stores the full feature vector seen at inference time — the basis for drift detection."""
@@ -37,6 +40,7 @@ class InputData(Base):
     season = Column(String, nullable=False)
     ingested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+
 class PredictionRecord(Base):
     __tablename__ = "predictions"
     id = Column(Integer, primary_key=True, index=True)
@@ -50,18 +54,19 @@ class PredictionRecord(Base):
     predict_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     ml_model = Column(String)
 
+
 class DataQualityStat(Base):
     __tablename__ = "data_quality_stats"
-    
+
     # The Primary Key
     id = Column(Integer, primary_key=True, index=True)
-    
+
     # File name column
     file_name = Column(String, index=True)
-    
+
     # Time-Series Tracking column
     ingestion_timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
+
     # additional info about the bad dataset
     total_rows = Column(Integer)
     error_count = Column(Integer)
@@ -69,7 +74,9 @@ class DataQualityStat(Base):
     is_schema_valid = Column(Boolean)
     error_criticality = Column(String)
 
+
 # --- Database Operations ---
+
 
 def get_db():
     db = SessionLocal()
@@ -78,6 +85,7 @@ def get_db():
     finally:
         db.close()
 
+
 def test_db_connection():
     try:
         with engine.connect() as conn:
@@ -85,6 +93,7 @@ def test_db_connection():
             return True
     except Exception:
         return False
+
 
 def save_input_and_predictions_batch(db: Session, input_records: list, prediction_records: list):
     """
@@ -113,7 +122,10 @@ def save_input_and_predictions_batch(db: Session, input_records: list, predictio
         raise
 
 
-def query_predictions(db: Session, ml_model=None, prediction_source=None, energy_source_id=None, start_date=None, end_date=None, limit=100):
+def query_predictions(
+    db: Session, ml_model=None, prediction_source=None,
+    energy_source_id=None, start_date=None, end_date=None, limit=100
+):
     query = db.query(PredictionRecord)
     if ml_model is not None:
         query = query.filter(PredictionRecord.ml_model == ml_model)
@@ -125,16 +137,16 @@ def query_predictions(db: Session, ml_model=None, prediction_source=None, energy
         query = query.filter(PredictionRecord.predict_date >= start_date)
     if end_date is not None:
         query = query.filter(PredictionRecord.predict_date <= end_date)
-    
+
     return query.order_by(PredictionRecord.predict_date.desc()).limit(limit).all()
-   
-        
+
+
 def get_all_energy_sources(db: Session):
     return db.query(EnergySource).all()
 
- 
+
 def create_database_if_not_exists(db_url):
-    db_name = db_url.rsplit("/", 1)[-1] 
+    db_name = db_url.rsplit("/", 1)[-1]
     engine = create_engine(DATABASE_URL)
 
     with engine.connect() as conn:
