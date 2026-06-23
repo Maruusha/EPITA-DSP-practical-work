@@ -1,0 +1,16 @@
+[flake8]
+max-line-length = 120
+exclude =
+    .git,
+    __pycache__,
+    data/,
+    .venv
+per-file-ignores =
+    dags/ingestion_validate_data.py: E501,W291,W293,E711
+    model_service/main.py: E501,W291
+    model_service/db_utility.py: E501,W291,W293
+    model_service/predict.py: E501,W291
+    webapp/pages/1_Prediction.py: E501,W291,W293,E711
+    webapp/pages/2_Past_Predictions.py: E501,W291
+    webapp/main.py: E501,W291
+    webapp/services/api_client.py: E501
