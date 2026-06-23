@@ -1,0 +1,521 @@
+{
+  "apiVersion": "dashboard.grafana.app/v1beta1",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "adjdrmx",
+    "namespace": "default",
+    "uid": "QW6LCDYkbdcV20XgFQXkTWEYA8zH4NFIYdXvduRBVXQX",
+    "resourceVersion": "3",
+    "generation": 4,
+    "creationTimestamp": "2026-06-23T14:18:40Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "1"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "user:bfq0dlgbo2fpcf",
+      "grafana.app/updatedBy": "user:bfq0dlgbo2fpcf",
+      "grafana.app/updatedTimestamp": "2026-06-23T14:40:10Z",
+      "grafana.app/folder": ""
+    }
+  },
+  "spec": {
+    "uid": "adjdrmx",
+    "title": "default dashboard",
+    "tags": [],
+    "schemaVersion": 40,
+    "graphTooltip": 0,
+    "preload": false,
+    "liveNow": false,
+    "editable": true,
+    "time": {
+      "from": "now-3h",
+      "to": "now"
+    },
+    "timezone": "browser",
+    "refresh": "",
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "hidden": false
+    },
+    "fiscalYearStartMonth": 0,
+    "version": 4,
+    "links": [],
+    "annotations": {
+      "list": [
+        {
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard",
+          "builtIn": 1,
+          "datasource": {
+            "uid": "-- Grafana --",
+            "type": "grafana"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Total Error",
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.3.3",
+        "links": [],
+        "targets": [
+          {
+            "refId": "A",
+            "hide": false,
+            "datasource": {},
+            "dataset": "predictions_db",
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT SUM(error_count) \r\nFROM data_quality_stats\r\nWhere (ingestion_timestamp IS NOT NULL) AND (ingestion_timestamp IS NOT NULL)\r\nLIMIT 5000",
+            "sql": {
+              "columns": [
+                {
+                  "name": "SUM",
+                  "parameters": [
+                    {
+                      "name": "error_count",
+                      "type": "functionParameter"
+                    }
+                  ],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            },
+            "table": "data_quality_stats"
+          }
+        ],
+        "transformations": [],
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 8
+        }
+      },
+      {
+        "id": 1,
+        "type": "barchart",
+        "title": "Error By Severity ",
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineWidth": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [
+              {
+                "options": {
+                  "High": {
+                    "color": "red",
+                    "index": 0
+                  },
+                  "Medium": {
+                    "color": "orange",
+                    "index": 1
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "barRadius": 0,
+          "barWidth": 0.97,
+          "colorByField": "error_criticality",
+          "fullHighlight": false,
+          "groupWidth": 0.7,
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "orientation": "auto",
+          "showValue": "auto",
+          "stacking": "none",
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          },
+          "xField": "error_criticality",
+          "xTickLabelRotation": 0,
+          "xTickLabelSpacing": 0
+        },
+        "pluginVersion": "12.3.3",
+        "links": [],
+        "targets": [
+          {
+            "refId": "A",
+            "hide": false,
+            "datasource": {},
+            "dataset": "predictions_db",
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT SUM(error_count), error_criticality \r\nFROM data_quality_stats \r\nWHERE NOT error_criticality = 'None' AND ingestion_timestamp IS NOT NULL\r\nGROUP BY error_criticality LIMIT 5000 ",
+            "sql": {
+              "columns": [
+                {
+                  "name": "COUNT",
+                  "parameters": [
+                    {
+                      "name": "error_count",
+                      "type": "functionParameter"
+                    }
+                  ],
+                  "type": "function"
+                },
+                {
+                  "parameters": [
+                    {
+                      "name": "error_criticality",
+                      "type": "functionParameter"
+                    }
+                  ],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "name": "error_criticality",
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            },
+            "table": "data_quality_stats"
+          }
+        ],
+        "transformations": [],
+        "gridPos": {
+          "x": 6,
+          "y": 0,
+          "w": 8,
+          "h": 8
+        }
+      },
+      {
+        "id": 2,
+        "type": "timeseries",
+        "title": "Error count overtime",
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": true,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "ingestion_timestamp"
+              },
+              "properties": []
+            }
+          ]
+        },
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.3.3",
+        "links": [],
+        "targets": [
+          {
+            "refId": "A",
+            "hide": false,
+            "datasource": {},
+            "dataset": "predictions_db",
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT Sum(error_count) as Total_Error, ingestion_timestamp\r\nFROM \r\n  (SELECT error_count, ingestion_timestamp, error_criticality \r\n\tFROM data_quality_stats\r\n\tWhere (ingestion_timestamp IS NOT NULL) AND (error_count > 0)\r\n\tLIMIT 5000 ) as base\r\nWHERE (ingestion_timestamp IS NOT NULL) \r\nGROUP BY ingestion_timestamp\r\nLIMIT 5000\r\n",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [
+                    {
+                      "name": "error_count",
+                      "type": "functionParameter"
+                    }
+                  ],
+                  "type": "function"
+                },
+                {
+                  "parameters": [
+                    {
+                      "name": "ingestion_timestamp",
+                      "type": "functionParameter"
+                    }
+                  ],
+                  "type": "function"
+                },
+                {
+                  "parameters": [
+                    {
+                      "name": "error_criticality",
+                      "type": "functionParameter"
+                    }
+                  ],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [],
+              "limit": 50
+            },
+            "table": "data_quality_stats"
+          }
+        ],
+        "transformations": [],
+        "gridPos": {
+          "x": 14,
+          "y": 0,
+          "w": 10,
+          "h": 8
+        }
+      },
+      {
+        "id": 4,
+        "type": "table",
+        "title": "Input data",
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "footer": {
+                "reducers": []
+              },
+              "inspect": false
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "cellHeight": "sm",
+          "showHeader": true
+        },
+        "pluginVersion": "12.3.3",
+        "links": [],
+        "targets": [
+          {
+            "refId": "A",
+            "hide": false,
+            "datasource": {},
+            "dataset": "predictions_db",
+            "editorMode": "builder",
+            "format": "table",
+            "rawSql": "SELECT * FROM input_data LIMIT 50 ",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [
+                    {
+                      "name": "*",
+                      "type": "functionParameter"
+                    }
+                  ],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            },
+            "table": "input_data"
+          }
+        ],
+        "transformations": [],
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        }
+      }
+    ],
+    "templating": {
+      "list": []
+    }
+  },
+  "status": {}
+}
