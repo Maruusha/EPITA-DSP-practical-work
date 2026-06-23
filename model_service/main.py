@@ -2,6 +2,7 @@ from datetime import date, datetime, timezone
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query, Request, Depends
 from contextlib import asynccontextmanager
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import predict
 import db_utility
@@ -59,6 +60,7 @@ class ReloadResponse(BaseModel):
     message: str
     active_version: str
 
+
 # --- Health Endpoints ---
 @app.get("/health")
 async def health():
@@ -77,7 +79,7 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
 
     # safety check
     if model is None:
-        raise HTTPException(status_code=500, detail="Prediction model not loaded")  
+        raise HTTPException(status_code=500, detail="Prediction model not loaded")
 
     try:
         predictions = []
@@ -160,17 +162,17 @@ async def reload_model(request: Request):
     try:
         # Reload the model using the updated predict.py logic
         request.app.state.model = predict.load_model()
-        
+
         model_version = getattr(request.app.state.model, "version", "unknown")
-        
+
         return ReloadResponse(
-            status="success", 
+            status="success",
             message="Model successfully hot-swapped from MLflow Registry.",
             active_version=model_version
         )
     except Exception as e:
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Failed to reload model from MLflow: {str(e)}"
         )
 

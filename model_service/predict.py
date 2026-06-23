@@ -2,7 +2,6 @@ import random
 import pickle
 import os
 import pandas as pd
-from datetime import datetime
 from abc import ABC, abstractmethod
 import mlflow
 import mlflow.pyfunc
@@ -20,6 +19,7 @@ class EnergyModel(ABC):
 class TempModel(EnergyModel):
     def __init__(self):
         self.version = "Mock-v0.1"
+
     def predict(self, features: dict) -> float:
         return round(random.uniform(1000.0, 5000.0), 1)
 
@@ -28,7 +28,7 @@ class RealModel(EnergyModel):
     def __init__(self):
         # Consistent Version Naming for Local Fallback
         self.version = "Local-Baseline-v3.0"
-        
+
         model_paths = ["baseline_model.pkl", "model_service/baseline_model.pkl"]
         self.model = None
 
@@ -47,8 +47,8 @@ class RealModel(EnergyModel):
         # Calculate derived temporal features
         day_of_year = date_obj.timetuple().tm_yday
         month_name = date_obj.strftime("%B")
-        day_name = date_obj.strftime("%A") 
-        
+        day_name = date_obj.strftime("%A")
+
         # Determine the Season
         m = date_obj.month
         if m in [12, 1, 2]:
@@ -72,11 +72,12 @@ class RealModel(EnergyModel):
         }])
 
         prediction = self.model.predict(input_df)[0]
-        
+
         if prediction < 0:
             prediction = 0.0
-            
+
         return round(float(prediction), 1)
+
 
 class MLflowChampionModel(EnergyModel):
     """
@@ -85,12 +86,12 @@ class MLflowChampionModel(EnergyModel):
     def __init__(self):
         mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
         mlflow.set_tracking_uri(mlflow_uri)
-        
+
         model_uri = "models:/RenewableEnergyModel@champion"
         print(f"Attempting to load MLflow model from {model_uri}...")
-        
+
         self.model = mlflow.pyfunc.load_model(model_uri)
-        
+
         # Consistent Version Naming for Production
         # Prefixes 'MLflow-Prod-' and grabs the short 8-character hash of the run_id.
         # This keeps database rows clean while staying completely traceable.
@@ -99,11 +100,11 @@ class MLflowChampionModel(EnergyModel):
 
     def predict(self, features: dict) -> float:
         date_obj = features['date']
-        
+
         day_of_year = date_obj.timetuple().tm_yday
         month_name = date_obj.strftime("%B")
         day_name = date_obj.strftime("%A")
-        
+
         m = date_obj.month
         if m in [12, 1, 2]:
             season = "Winter"
@@ -113,7 +114,7 @@ class MLflowChampionModel(EnergyModel):
             season = "Summer"
         else:
             season = "Fall"
-            
+
         input_df = pd.DataFrame([{
             'Start_Hour': features['start_hour'],
             'End_Hour': features['end_hour'],
@@ -123,9 +124,9 @@ class MLflowChampionModel(EnergyModel):
             'Day_of_Year': day_of_year,
             'Day_Name': day_name
         }])
-        
+
         prediction = self.model.predict(input_df)[0]
-        
+
         if prediction < 0:
             prediction = 0.0
 
@@ -134,12 +135,12 @@ class MLflowChampionModel(EnergyModel):
 
 def load_model():
     """
-    Attempts to load the MLflow Champion. Falls back to the local baseline 
+    Attempts to load the MLflow Champion. Falls back to the local baseline
     if MLflow is empty (e.g., before the first Airflow training run completes).
     """
     if USE_TEMP_MODEL:
         return TempModel()
-        
+
     try:
         return MLflowChampionModel()
     except Exception as e:
