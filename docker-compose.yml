@@ -68,6 +68,16 @@ services:
         condition: service_started
 
 
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-gx-docs
+    ports:
+      - "8090:80"
+    volumes:
+      - ./gx/uncommitted/data_docs/local_site:/usr/share/nginx/html:ro
+    restart: always
+
+
   airflow-apiserver:
     <<: *airflow-common
     container_name: airflow-apiserver
@@ -166,6 +176,20 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    env_file:
+      - .env 
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - TEAMS_WEBHOOK_URL=${AIRFLOW_TEAMS_WEBHOOK_URL}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards     
 volumes:
   postgres-db-volume:

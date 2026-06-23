@@ -21,24 +21,9 @@ class EnergySource(Base):
     id = Column(Integer, primary_key=True)
     source_type = Column(String, unique = True, nullable = False)  # Solar, Wind, Mix, etc.
 
-class InputData(Base):
-    """Stores the full feature vector seen at inference time — the basis for drift detection."""
-    __tablename__ = "input_data"
-    id = Column(Integer, primary_key=True, index=True)
-    energy_source_id = Column(Integer, ForeignKey("energy_sources.id"), nullable=False)
-    input_date = Column(DateTime, nullable=False)
-    start_hour = Column(Integer, nullable=False)
-    end_hour = Column(Integer, nullable=False)
-    day_of_year = Column(Integer, nullable=False)
-    day_name = Column(String, nullable=False)
-    month_name = Column(String, nullable=False)
-    season = Column(String, nullable=False)
-    ingested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
 class PredictionRecord(Base):
     __tablename__ = "predictions"
     id = Column(Integer, primary_key=True, index=True)
-    input_id = Column(Integer, ForeignKey("input_data.id"), nullable=False)
     energy_source_id = Column(Integer, ForeignKey("energy_sources.id"))
     prediction_source = Column(String)
     input_date = Column(DateTime)
@@ -84,27 +69,10 @@ def test_db_connection():
     except Exception:
         return False
 
-def save_input_and_predictions_batch(db: Session, input_records: list, prediction_records: list):
-    """
-    Saves input features and predictions in one transaction.
-    input_records and prediction_records must be the same length and in matching order.
-    Each prediction gets linked to its corresponding input row via input_id.
-    """
-    if len(input_records) != len(prediction_records):
-        raise ValueError("input_records and prediction_records must have the same length")
+def save_predictions_batch(db: Session, records_data: list):
     try:
-        # Insert input_data rows first to get their IDs
-        db_inputs = [InputData(**data) for data in input_records]
-        db.add_all(db_inputs)
-        db.flush()  # assigns IDs without committing
-
-        # Link each prediction to its input row
-        db_predictions = []
-        for input_row, pred_data in zip(db_inputs, prediction_records):
-            pred_data["input_id"] = input_row.id
-            db_predictions.append(PredictionRecord(**pred_data))
-
-        db.add_all(db_predictions)
+        db_records = [PredictionRecord(**data) for data in records_data]
+        db.add_all(db_records)
         db.commit()
     except:
         db.rollback()
