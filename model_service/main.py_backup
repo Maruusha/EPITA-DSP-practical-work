@@ -7,26 +7,6 @@ from sqlalchemy.orm import Session
 import predict
 import db_utility
 
-
-def derive_temporal_features(d: date) -> dict:
-    """Derive the temporal features the model pipeline uses, matching the training CSV columns."""
-    month = d.month
-    if month in (3, 4, 5):
-        season = "Spring"
-    elif month in (6, 7, 8):
-        season = "Summer"
-    elif month in (9, 10, 11):
-        season = "Fall"
-    else:
-        season = "Winter"
-
-    return {
-        "day_of_year": d.timetuple().tm_yday,
-        "day_name": d.strftime("%A"),        # "Monday", "Tuesday", ...
-        "month_name": d.strftime("%B"),      # "January", "February", ...
-        "season": season,
-    }
-
 # Set the max number of input for each batch request
 MAX_BATCH_SIZE = 100
 
@@ -93,11 +73,6 @@ class PredictionResponse(BaseModel):
     status: str = "success"
     predictions: List[Prediction]
 
-class ReloadResponse(BaseModel):
-    status: str
-    message: str
-    active_version: str
-
 # --- Health Endpoints ---
 @app.get("/health")
 async def health():
@@ -116,12 +91,11 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
 
     # safety check
     if model is None:
-        raise HTTPException(status_code=500, detail="Prediction model not loaded")  
+        raise HTTPException(status_code=500, detail="Prediction model not loaded")	
 
     try:
         predictions = []
-        db_input_records = []
-        db_pred_records = []
+        db_records = []
         model_version = getattr(model, "version", "unknown")
         now = datetime.now(timezone.utc)
         
@@ -148,21 +122,8 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
                 )
             )
 
-            # prepare input_data row (full feature vector for drift detection)
-            temporal = derive_temporal_features(row.date)
-            db_input_records.append({
-                "energy_source_id": energy_source_id,
-                "input_date": row.date,
-                "start_hour": row.start_hour,
-                "end_hour": row.end_hour,
-                "day_of_year": temporal["day_of_year"],
-                "day_name": temporal["day_name"],
-                "month_name": temporal["month_name"],
-                "season": temporal["season"],
-            })
-
-            # prepare prediction row
-            db_pred_records.append({
+            # prepare DB row
+            db_records.append({
                 "energy_source_id": energy_source_id,
                 "input_date": row.date,
                 "input_time_start": row.start_hour,
@@ -170,11 +131,11 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
                 "predict_result": prediction,
                 "prediction_source": row.prediction_source,
                 "predict_date": now,
-                "ml_model": model_version,
+                "ml_model": model_version
             })
 
-        # write both tables in one transaction
-        db_utility.save_input_and_predictions_batch(db, db_input_records, db_pred_records)
+        # write data to postgres
+        db_utility.save_predictions_batch(db, db_records)        
 
         # return the reponses
         return {"status": "success", "predictions": predictions}
@@ -187,31 +148,6 @@ async def predict_energy(payload: List[PredictionInput], request: Request, db: S
         raise HTTPException(
             status_code=500,
             detail="Prediction failed due to internal error"
-        )
-
-
-# --- Model Reload Endpoint ---
-@app.post("/reload-model", response_model=ReloadResponse)
-async def reload_model(request: Request):
-    """
-    Triggered by Airflow after a successful model promotion.
-    Forces the API to fetch the latest @champion from MLflow.
-    """
-    try:
-        # Reload the model using the updated predict.py logic
-        request.app.state.model = predict.load_model()
-        
-        model_version = getattr(request.app.state.model, "version", "unknown")
-        
-        return ReloadResponse(
-            status="success", 
-            message="Model successfully hot-swapped from MLflow Registry.",
-            active_version=model_version
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to reload model from MLflow: {str(e)}"
         )
 
 
