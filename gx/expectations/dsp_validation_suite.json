@@ -437,6 +437,746 @@
       },
       "meta": {},
       "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "615761c5-48ad-4f35-bc28-6856811841a1",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T17:47:43.453498",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "836f6df8-642c-4bf4-ae29-50efbbe0f0a5",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T17:50:09.855797",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "67fe208d-f187-4ac1-878a-dfa63772b961",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T17:55:09.380575",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "04c22223-5f8b-4d53-b88a-0579e27ec3f1",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:00:10.388408",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "76704e9c-d99c-45b4-a274-35dfe7c110b0",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:05:11.710480",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "0b1c161b-2aae-44a2-8632-16de86aab839",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:10:10.862283",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "b0e2bb10-36bb-4d39-a18b-57ae2c68c815",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:15:08.922665",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "d0c1e2ca-43e8-4cb7-a8cc-722a08cdb85c",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:20:10.142971",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "eb2410e9-2e53-419e-a435-f47414f2d255",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:23:16.505525",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "56993a9a-f28f-4188-a938-d08fa01b55dd",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:25:09.755604",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "da29d6c2-e4c8-4f90-8595-91185726e6d8",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:30:09.281759",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "df4b3fc8-5172-4b62-ae14-2e3a50f6e376",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:35:07.859993",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "71b5be6c-21f2-44f8-9fca-ee793b1c786f",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:40:08.629736",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "45b30562-8353-4e00-96ec-3823baf4eee9",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:45:10.056655",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "53117fea-bea3-4706-8492-7fb29cfb1216",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:50:10.555891",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "bc74cbef-35f3-400d-9f3a-695773db9953",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T18:55:09.962123",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "da25ff46-3267-4b5b-a29c-393fe3b2de42",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:00:09.929145",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "10784815-b298-4a0a-88b6-ddc99fdf6de5",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:03:56.004808",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "1605eef5-deda-4423-a38e-4d0afd68e514",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:05:09.207161",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "68bd2828-a48c-4e9e-8cfd-d515f3f652b7",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:10:09.229212",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "0931f23f-8015-42e9-ace3-474eeb0d971a",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:15:08.767324",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "54a8d934-82d8-40df-979f-0dd02177d4fb",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:20:10.480658",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "0ba27782-7e17-4e8b-a527-5545e1d68eef",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:25:09.857014",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "fbb2d6b5-553d-4936-8202-2f5c5873a150",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:30:09.897478",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "7237dd71-8112-4764-8ef5-85318659fbe8",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:35:08.978837",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "9b9fd9ad-63b2-4078-aefb-a62719297fe1",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:40:09.320380",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "3becf790-4349-4590-9213-d7bacfcb1595",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-20T19:45:10.049479",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "6e6c0090-1d61-4e82-9c5e-83532e178ad8",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:14:47.092826",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "21a8e000-61d0-4189-994b-98fdbe6958e3",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:15:07.095674",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "8953bf91-2076-4ab6-8ae0-00bd772ae3ed",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:15:26.006404",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "760d0269-c916-4bbb-9d6f-bf943386a1fa",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:16:02.351253",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "3c79f387-5c3a-4d91-b389-38ce9fa276a7",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:20:09.864805",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "09983980-2df3-4780-b30b-175b7e8ccc08",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:25:10.783708",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "a717ec20-65b5-4278-8ff6-1734ffca9d92",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:30:09.089397",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "6dce600d-9be6-4d63-8f6f-0358d2815ce0",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:35:11.704602",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "8e67f7b2-8c0c-4c95-9ff7-ad83686552cb",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:40:11.758761",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "a8185e08-c065-40a3-ac66-fbb335fd2356",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:45:10.430636",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "dc3a056e-92e9-44c0-95ba-a3e75c5fadeb",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:50:10.562434",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "1b143f16-aff1-4e2d-82ae-059062f4fe3e",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T08:55:08.412039",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "5f5aea48-d18d-41f5-9aac-b83749f543f9",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:00:09.189616",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "47060c2c-be9c-43a0-9d58-3fd911f9fef3",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:05:08.512730",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "2e9de813-e4ca-48af-b6fb-3cca90b739e6",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:10:09.845863",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "e43552e3-65b1-41e1-ac12-baa377f976f9",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:15:09.934700",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "b4d52c18-9927-478a-85b3-76a05ca6c95d",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:20:10.232156",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "c812bfb0-100e-49a7-bc43-15ccc24d8dd0",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:25:10.839799",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "17e3fb88-1079-4605-873d-6d8f8b094aed",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:30:10.744063",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "f3923a6a-1325-4a43-b107-d7e5683212f8",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:35:08.966987",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "68c37aa5-1419-4d09-a0ca-01e4021a3db5",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:40:09.826149",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "8a8a2437-6fb0-42f3-9ba4-087d521b2431",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:45:08.465054",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "694c4803-c53e-4f4a-95bb-b9eccea483a4",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:50:08.614012",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "6d8b2824-1778-4581-9636-a9fdf8bcf308",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T09:55:09.482587",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "5c191c5a-e84c-40a7-8f38-240a9b429c84",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:00:09.489754",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "b6e5d027-510a-4a70-b15d-e3c881cc7f08",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:05:10.200307",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "b72605ca-3538-447e-95f4-9b6d75295da2",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:10:09.586763",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "f7da7eb1-3991-44af-a2a6-aed67d775cff",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:11:43.916703",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "956e107d-34b7-49cf-a02a-f45e11483782",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:15:08.583452",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "138a6b1b-3e63-4bd0-95ef-eacdc93d1a12",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:20:09.101316",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "44c0484e-dc0f-437b-81ea-22c9f16c98e7",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:25:08.664471",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "cd0bb5ab-6c31-4806-afb2-989d80e7b961",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:30:11.358864",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "ff4b69d3-05c5-4c71-bdb5-62c22a22f5b9",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:35:10.593280",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "d962731a-c47c-4b75-b494-7b7a68d17243",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:40:11.227558",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "0da7540a-89af-455c-a511-ec132d873042",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:45:10.655704",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "7956e624-ca65-42f8-bf88-5aaaea48d1c8",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:50:11.251633",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "630bc884-4de6-427e-a200-0dd5c815cfb4",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T10:55:10.752433",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "c5573889-06c9-4c1f-905e-ca25db73bb88",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T11:00:11.311593",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "a1479346-29bd-44b9-b5b7-8c0ee5bdbb0c",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:05:09.114575",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "97471520-efbd-4806-83ca-e0f809f7cfa7",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:06:39.107441",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "89ebc886-84d5-4019-a00f-7d9c7f894ed8",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:10:09.813686",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "13ea8532-a628-4924-bf62-3e968d2ae43a",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:14:07.429320",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "c8c0836f-c19b-4d92-90ab-4909be3713be",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:16:18.049401",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "3420cd03-cace-4f47-8ad5-523d14e558aa",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:20:09.556219",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "c63d2aaf-5fa5-4bf1-af02-bd9d161aa237",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:25:09.463333",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "6d8dacbd-2517-427a-97e1-26e43878a8c5",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:26:50.711783",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "c8513134-99a7-4165-b3fc-73d1b62df312",
+      "kwargs": {
+        "column": "Date",
+        "max_value": "2026-06-23T14:30:09.226153",
+        "min_value": "2018-01-01T00:00:00"
+      },
+      "meta": {},
+      "type": "expect_column_values_to_be_between"
     }
   ],
   "id": "7d2baad1-c93f-4ed8-8ac3-4dfe0a3f210d",
