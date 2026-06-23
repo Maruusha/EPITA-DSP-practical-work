@@ -279,25 +279,6 @@ def ingestion_validate_data():
             # Retrieve Webhook variable
             webhook_url = Variable.get("teams_webhook")
 
-            # payload = {
-            #     "@type": "MessageCard",
-            #     "@context": "http://schema.org/extensions",
-            #     "summary": title,
-            #     "themeColor": color,
-            #     "title": f"{icon} {title}",
-            #     "sections": [
-            #         {
-            #             "facts": [
-            #                 {"name": "Severity:", "value": severity},
-            #                 {"name": "Schema Valid:", "value": is_schema_valid},
-            #                 {"name": "Invalid Rows:", "value": f"{error_percent}%"},
-            #                 {"name": "Total Rows:", "value": total_rows},
-            #                 {"name": "Source File:", "value": source_file},
-            #                 {"name": "Report:", "value": f"[View Data Docs]({report_url})"}
-            #             ]
-            #         }
-            #     ]
-            # }
             # Build Adaptive Card payload
             payload = {
                 "type": "message",
