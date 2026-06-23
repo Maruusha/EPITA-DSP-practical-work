@@ -187,12 +187,10 @@ def ingestion_validate_data():
             # If data has schema error, all data is bad
             payload.bad_records = df.to_dict(orient="records")
         
-         # Generate Data Docs
+        # Generate Data Docs
         context.build_data_docs()
-        data_docs_sites = context.get_docs_sites_urls()
-        report_path = next(site["site_url"] for site in data_docs_sites if site["site_name"] == "local_site")
-        
-        payload.report_url = report_path
+        nginx_base = os.environ.get("GX_DOCS_BASE_URL", "http://localhost:8090")
+        payload.report_url = f"{nginx_base}/index.html"
         
         return payload.model_dump()
 
@@ -281,22 +279,65 @@ def ingestion_validate_data():
             # Retrieve Webhook variable
             webhook_url = Variable.get("teams_webhook")
 
+            # payload = {
+            #     "@type": "MessageCard",
+            #     "@context": "http://schema.org/extensions",
+            #     "summary": title,
+            #     "themeColor": color,
+            #     "title": f"{icon} {title}",
+            #     "sections": [
+            #         {
+            #             "facts": [
+            #                 {"name": "Severity:", "value": severity},
+            #                 {"name": "Schema Valid:", "value": is_schema_valid},
+            #                 {"name": "Invalid Rows:", "value": f"{error_percent}%"},
+            #                 {"name": "Total Rows:", "value": total_rows},
+            #                 {"name": "Source File:", "value": source_file},
+            #                 {"name": "Report:", "value": f"[View Data Docs]({report_url})"}
+            #             ]
+            #         }
+            #     ]
+            # }
+            # Build Adaptive Card payload
             payload = {
-                "@type": "MessageCard",
-                "@context": "http://schema.org/extensions",
-                "summary": title,
-                "themeColor": color,
-                "title": f"{icon} {title}",
-                "sections": [
+                "type": "message",
+                "attachments": [
                     {
-                        "facts": [
-                            {"name": "Severity:", "value": severity},
-                            {"name": "Schema Valid:", "value": is_schema_valid},
-                            {"name": "Invalid Rows:", "value": f"{error_percent}%"},
-                            {"name": "Total Rows:", "value": total_rows},
-                            {"name": "Source File:", "value": source_file},
-                            {"name": "Report:", "value": report_url}
-                        ]
+                        "contentType": "application/vnd.microsoft.card.adaptive",
+                        "content": {
+                            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                            "type": "AdaptiveCard",
+                            "version": "1.4",
+                            "body": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": f"{icon} {title}",
+                                    "weight": "Bolder",
+                                    "size": "Medium",
+                                    "color": "Attention" if severity == "High" else "Warning"
+                                },
+                                {
+                                    "type": "FactSet",
+                                    "facts": [
+                                        {"title": "Severity", "value": severity},
+                                        {"title": "Schema Valid", "value": str(is_schema_valid)},
+                                        {"title": "Invalid Rows", "value": f"{error_percent}%"},
+                                        {"title": "Total Rows", "value": str(total_rows)},
+                                        {"title": "Source File", "value": source_file},
+                                    ]
+                                },
+                                {
+                                    "type": "ActionSet",
+                                    "actions": [
+                                        {
+                                            "type": "Action.OpenUrl",
+                                            "title": "View Data Docs",
+                                            "url": report_url
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
                     }
                 ]
             }
