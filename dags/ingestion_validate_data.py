@@ -132,22 +132,17 @@ def ingestion_validate_data():
             )
         )
 
-        # Checkpoint - delete and recreate
-        try:
-            context.checkpoints.delete("my_checkpoint")
-        except:
-            pass
-        context.checkpoints.add(
+        checkpoint_name = f"checkpoint_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}"
+        checkpoint = context.checkpoints.add(
             gx.Checkpoint(
-                name="my_checkpoint",
+                name=checkpoint_name,
                 validation_definitions=[validation_definition],
-                result_format="SUMMARY"
+                result_format={"result_format": "COMPLETE"}  
             )
         )
-        results = validation_definition.run(
-            batch_parameters={"dataframe": df},
-            result_format={"result_format": "COMPLETE"}
-        )
+        checkpoint_result = checkpoint.run(batch_parameters={"dataframe": df})
+        results = list(checkpoint_result.run_results.values())[0]
+
         logging.warning("Result"+str(results))
         bad_indices = set()
         payload.is_schema_valid = True      
