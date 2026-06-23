@@ -11,6 +11,7 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 class Base(DeclarativeBase):
     pass
 
@@ -19,7 +20,7 @@ class Base(DeclarativeBase):
 class EnergySource(Base):
     __tablename__ = "energy_sources"
     id = Column(Integer, primary_key=True)
-    source_type = Column(String, unique = True, nullable = False)  # Solar, Wind, Mix, etc.
+    source_type = Column(String, unique=True, nullable=False)  # Solar, Wind, Mix, etc.
 
 class InputData(Base):
     """Stores the full feature vector seen at inference time — the basis for drift detection."""
@@ -67,6 +68,22 @@ class DataQualityStat(Base):
     is_schema_valid = Column(Boolean)
     error_criticality = Column(String)
 
+class TrainingStatistic(Base):
+    """
+    Stores baseline feature statistics from the training dataset of promoted models.
+    Used by Grafana to detect data drift in production.
+    """
+    __tablename__ = "training_statistics"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    run_id = Column(String, index=True, nullable=False)
+    training_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # Feature baselines
+    production_mean = Column(Float)
+    production_std = Column(Float)
+    solar_percentage = Column(Float)
+
 # --- Database Operations ---
 
 def get_db():
@@ -110,8 +127,7 @@ def save_input_and_predictions_batch(db: Session, input_records: list, predictio
         db.rollback()
         raise
 
-
-def query_predictions(db: Session, ml_model=None, prediction_source=None,energy_source_id=None, start_date=None, end_date=None, limit=100):
+def query_predictions(db: Session, ml_model=None, prediction_source=None, energy_source_id=None, start_date=None, end_date=None, limit=100):
     query = db.query(PredictionRecord)
     if ml_model is not None:
         query = query.filter(PredictionRecord.ml_model == ml_model)
@@ -125,11 +141,9 @@ def query_predictions(db: Session, ml_model=None, prediction_source=None,energy_
         query = query.filter(PredictionRecord.predict_date <= end_date)
     
     return query.order_by(PredictionRecord.predict_date.desc()).limit(limit).all()
-   
         
 def get_all_energy_sources(db: Session):
     return db.query(EnergySource).all()
-
  
 def create_database_if_not_exists(db_url):
     db_name = db_url.rsplit("/", 1)[-1] 

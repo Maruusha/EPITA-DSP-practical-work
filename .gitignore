@@ -225,4 +225,7 @@ dags/logs/
 
 /dags/logs/
 
-/gx/
+gx/
+
+mlflow-artifacts/
+/tmp/airflow_temp/
