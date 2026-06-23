@@ -14,7 +14,7 @@ dataset_path = os.path.join(base_dir, 'raw_data')
 output_folder = os.path.join(base_dir, 'raw_data')
 os.makedirs(output_folder, exist_ok=True)
 
-ERROR_PERCENTAGE = 0.75  # min 0 max 1s
+ERROR_PERCENTAGE = 0.15  # min 0 max 1s
 
 # Define the possible error types (excluding Schema which is File-level)
 row_error_types = ['completeness', 'validity', 'consistency', 'type', 'impossibleValue', 'outlier']
