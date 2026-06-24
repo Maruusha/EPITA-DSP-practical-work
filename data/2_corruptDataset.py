@@ -64,7 +64,6 @@ for file_name in os.listdir(dataset_path):
             elif error == 'outlier':
                 df['Production'] = df['Production'].astype(object)
                 df.at[idx, 'Production'] = 40000
- 
 
     # SHUFFLE THE ROWS
     df = df.sample(frac=1).reset_index(drop=True)

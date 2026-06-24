@@ -219,9 +219,6 @@ dags/logs/
 /data/bad_data/*.txt
 /data/archived_data/*.csv
 /data/archived_data/*.txt
-/gx/checkpoints/
-/gx/expectations/
-/gx/plugins/
 
 /dags/logs/
 
