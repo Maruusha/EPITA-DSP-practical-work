@@ -13,7 +13,10 @@ import great_expectations.expectations as gxe
 import requests
 
 from DataValClass import DataValClass
-from validation_utils import compute_criticality, compute_error_stats, split_records, detect_type_errors, EXPECTATION_CATEGORY_MAP, get_failing_indices
+from validation_utils import (
+    compute_criticality, compute_error_stats, split_records,
+    detect_type_errors, EXPECTATION_CATEGORY_MAP, get_failing_indices
+)
 
 # Reference lists for validation
 VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']

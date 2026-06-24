@@ -49,8 +49,10 @@ def _parse_predictions(predictions):
     input_df["Predicted Production (MWh)"] = result_df["production"]
     input_df["Model Version"] = result_df["model_version"]
 
-    return input_df[["Date", "Start hour", "End hour", "Energy Source",
-                      "Predicted Production (MWh)", "Model Version"]]
+    return input_df[
+        ["Date", "Start hour", "End hour", "Energy Source",
+         "Predicted Production (MWh)", "Model Version"]
+    ]
 
 
 def run_prediction(payload):
