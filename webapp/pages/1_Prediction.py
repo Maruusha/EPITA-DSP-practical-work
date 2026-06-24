@@ -3,6 +3,7 @@ from services.api_client import make_prediction
 import pandas as pd
 
 DEFAULT_SOURCE = "Webapp"
+BATCH_CHUNK_SIZE = 100
 
 # -----Session state Initialization-----
 if "batch_input_df" not in st.session_state:
@@ -31,48 +32,48 @@ def show_api_error(error_message, exception=None):
             st.write(error_message)
 
 
-def run_prediction(payload):
-    """Calls API and returns a dataframe of predictions."""
-    with st.spinner("Calling prediction service..."):
-        results = make_prediction(payload)
-
-    if "error" in results:
-        show_api_error(results['error'])
-        return None
-
-    predictions = results.get("predictions", [])
-
-    if not predictions:
-        st.error("No predictions returned from API.")
-        return None
-
+def _parse_predictions(predictions):
+    """Converts a list of prediction dicts to a display DataFrame."""
     result_df = pd.DataFrame(predictions)
 
-    # to be save before flatten received input
     if "received_input" not in result_df.columns:
-        st.error("Invalid API response format.")
         return None
 
-    # flatten received_input
     input_df = pd.json_normalize(result_df["received_input"])
-
-    # Rename columns for UI display
     input_df = input_df.rename(columns={
         "date": "Date",
         "start_hour": "Start hour",
         "end_hour": "End hour",
         "energy_source": "Energy Source",
     })
-
-    # Add prediction and model columns
     input_df["Predicted Production (MWh)"] = result_df["production"]
     input_df["Model Version"] = result_df["model_version"]
 
-    # Arrange columns in nice order
-    result_df = input_df[[
-        "Date", "Start hour", "End hour", "Energy Source",
-        "Predicted Production (MWh)", "Model Version"
-    ]]
+    return input_df[["Date", "Start hour", "End hour", "Energy Source",
+                      "Predicted Production (MWh)", "Model Version"]]
+
+
+def run_prediction(payload):
+    """Calls API in chunks and returns a combined dataframe of predictions."""
+    all_predictions = []
+    chunks = [payload[i:i + BATCH_CHUNK_SIZE] for i in range(0, len(payload), BATCH_CHUNK_SIZE)]
+
+    with st.spinner(f"Calling prediction service ({len(payload)} rows in {len(chunks)} batch(es))..."):
+        for chunk in chunks:
+            results = make_prediction(chunk)
+            if "error" in results:
+                show_api_error(results["error"])
+                return None
+            all_predictions.extend(results.get("predictions", []))
+
+    if not all_predictions:
+        st.error("No predictions returned from API.")
+        return None
+
+    result_df = _parse_predictions(all_predictions)
+    if result_df is None:
+        st.error("Invalid API response format.")
+        return None
 
     return result_df
 
@@ -179,6 +180,12 @@ with tab_batch:
             st.error("Please upload a CSV file first.")
         else:
             try:
+                # Normalize column names: lowercase and map dataset aliases
+                batch_df = batch_df.copy()
+                batch_df.columns = batch_df.columns.str.lower()
+                if "source" in batch_df.columns and "energy_source" not in batch_df.columns:
+                    batch_df = batch_df.rename(columns={"source": "energy_source"})
+
                 required_columns = [
                     "date",
                     "start_hour",
@@ -194,16 +201,37 @@ with tab_batch:
                     clear_batch_results()
                     st.error(f"This CSV file does not contain required columns. Missing columns: {missing}")
                 else:
-                    # Add prediction_source column
-                    batch_df = batch_df.copy()
-                    batch_df["prediction_source"] = DEFAULT_SOURCE
+                    # Normalize date to ISO format (YYYY-MM-DD)
+                    batch_df["date"] = pd.to_datetime(batch_df["date"]).dt.strftime("%Y-%m-%d")
 
-                    payload = batch_df.to_dict(orient="records")
+                    # Drop rows the API would reject (start_hour >= end_hour or out of 0-23)
+                    invalid_mask = (
+                        (batch_df["start_hour"] >= batch_df["end_hour"]) |
+                        (~batch_df["start_hour"].between(0, 23)) |
+                        (~batch_df["end_hour"].between(0, 23))
+                    )
+                    if invalid_mask.any():
+                        st.warning(
+                            f"Skipped {invalid_mask.sum()} row(s) with invalid hours "
+                            "(start_hour must be less than end_hour, both in range 0–23)."
+                        )
+                        batch_df = batch_df[~invalid_mask]
 
-                    result_df = run_prediction(payload)
+                    if batch_df.empty:
+                        clear_batch_results()
+                        st.error("No valid rows remaining after filtering invalid hours.")
+                    else:
+                        # Only send the fields the API expects
+                        api_columns = ["date", "start_hour", "end_hour", "energy_source"]
+                        payload_df = batch_df[api_columns].copy()
+                        payload_df["prediction_source"] = DEFAULT_SOURCE
 
-                    if result_df is not None:
-                        st.session_state["batch_result_df"] = result_df
+                        payload = payload_df.to_dict(orient="records")
+
+                        result_df = run_prediction(payload)
+
+                        if result_df is not None:
+                            st.session_state["batch_result_df"] = result_df
             except Exception as e:
                 clear_batch_results()
                 st.error("Something went wrong during batch prediction.")

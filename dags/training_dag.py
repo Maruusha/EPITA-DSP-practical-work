@@ -149,20 +149,81 @@ def ml_training_pipeline():
     def save_training_stats(train_info: dict) -> dict:
         logger = logging.getLogger("airflow.task")
         df = pd.read_csv(train_info["temp_data_path"])
+        n = len(df)
 
-        production_mean = float(df['Production'].mean())
-        production_std = float(df['Production'].std())
-        solar_percentage = float((df['Source'] == 'Solar').mean() * 100)
+        def _source_mean(source):
+            mask = df["Source"] == source
+            return float(df.loc[mask, "Production"].mean()) if mask.any() else None
+
+        stats = {
+            "row_count": n,
+            # Target drift
+            "production_mean": float(df["Production"].mean()),
+            "production_std": float(df["Production"].std()),
+            "production_min": float(df["Production"].min()),
+            "production_max": float(df["Production"].max()),
+            "production_p25": float(df["Production"].quantile(0.25)),
+            "production_p50": float(df["Production"].quantile(0.50)),
+            "production_p75": float(df["Production"].quantile(0.75)),
+            # Covariate drift — numeric
+            "start_hour_mean": float(df["Start_Hour"].mean()),
+            "start_hour_std": float(df["Start_Hour"].std()),
+            "end_hour_mean": float(df["End_Hour"].mean()),
+            "end_hour_std": float(df["End_Hour"].std()),
+            "day_of_year_mean": float(df["Day_of_Year"].mean()),
+            "day_of_year_std": float(df["Day_of_Year"].std()),
+            # Covariate drift — categorical (%)
+            "solar_percentage": float((df["Source"] == "Solar").sum() / n * 100),
+            "wind_percentage": float((df["Source"] == "Wind").sum() / n * 100),
+            "mixed_percentage": float((df["Source"] == "Mixed").sum() / n * 100),
+            "spring_percentage": float((df["Season"] == "Spring").sum() / n * 100),
+            "summer_percentage": float((df["Season"] == "Summer").sum() / n * 100),
+            "fall_percentage": float((df["Season"] == "Fall").sum() / n * 100),
+            "winter_percentage": float((df["Season"] == "Winter").sum() / n * 100),
+            # Concept drift — conditional production mean by source
+            "solar_production_mean": _source_mean("Solar"),
+            "wind_production_mean": _source_mean("Wind"),
+            "mixed_production_mean": _source_mean("Mixed"),
+        }
 
         hook = PostgresHook(postgres_conn_id='postgres_default')
         insert_sql = """
             INSERT INTO training_statistics (
-                run_id, training_date, production_mean, production_std, solar_percentage
-            ) VALUES (%s, %s, %s, %s, %s);
+                run_id, training_date, row_count,
+                production_mean, production_std, production_min, production_max,
+                production_p25, production_p50, production_p75,
+                start_hour_mean, start_hour_std,
+                end_hour_mean, end_hour_std,
+                day_of_year_mean, day_of_year_std,
+                solar_percentage, wind_percentage, mixed_percentage,
+                spring_percentage, summer_percentage, fall_percentage, winter_percentage,
+                solar_production_mean, wind_production_mean, mixed_production_mean
+            ) VALUES (
+                %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s,
+                %s, %s,
+                %s, %s,
+                %s, %s,
+                %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s
+            );
         """
         try:
             hook.run(insert_sql, parameters=(
-                train_info["run_id"], datetime.now(), production_mean, production_std, solar_percentage
+                train_info["run_id"], datetime.now(), stats["row_count"],
+                stats["production_mean"], stats["production_std"],
+                stats["production_min"], stats["production_max"],
+                stats["production_p25"], stats["production_p50"], stats["production_p75"],
+                stats["start_hour_mean"], stats["start_hour_std"],
+                stats["end_hour_mean"], stats["end_hour_std"],
+                stats["day_of_year_mean"], stats["day_of_year_std"],
+                stats["solar_percentage"], stats["wind_percentage"], stats["mixed_percentage"],
+                stats["spring_percentage"], stats["summer_percentage"],
+                stats["fall_percentage"], stats["winter_percentage"],
+                stats["solar_production_mean"], stats["wind_production_mean"],
+                stats["mixed_production_mean"],
             ))
             logger.info("Saved training baseline statistics to DB.")
         except Exception as e:

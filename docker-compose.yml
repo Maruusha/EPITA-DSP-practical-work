@@ -15,6 +15,7 @@ x-airflow-common:
     - ./data/bad_data:/opt/airflow/data/bad_data
     - ./data/raw_data:/opt/airflow/data/raw_data
     - ./data/archived_data:/opt/airflow/data/archived_data
+    - ./data/drift_data:/opt/airflow/data/drift_data
     - ./mlflow-artifacts:/mlflow/artifacts
   user: "${AIRFLOW_UID}:0"
 

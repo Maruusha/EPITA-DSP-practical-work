@@ -75,21 +75,104 @@ class DataQualityStat(Base):
     error_criticality = Column(String)
 
 
+class DataQualityError(Base):
+    __tablename__ = "data_quality_errors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    stat_id = Column(Integer, ForeignKey("data_quality_stats.id"), nullable=False)
+    error_category = Column(String)     # completeness | type | validity | range_violation | schema
+    expectation_type = Column(String)   # raw GX expectation name, e.g. "expect_column_values_to_not_be_null"
+    column_name = Column(String)        # column that failed, null for table-level checks
+    row_count = Column(Integer)         # number of failing rows
+    row_numbers = Column(String)        # JSON-encoded list of failing row indices
+
+
 class TrainingStatistic(Base):
     """
-    Stores baseline feature statistics from the training dataset of promoted models.
-    Used by Grafana to detect data drift in production.
+    Stores baseline statistics from each promoted model's training dataset.
+    Covers target, covariate, and concept drift baselines for Grafana.
     """
     __tablename__ = "training_statistics"
 
     id = Column(Integer, primary_key=True, index=True)
     run_id = Column(String, index=True, nullable=False)
     training_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    row_count = Column(Integer)
 
-    # Feature baselines
+    # Target drift — Production distribution
     production_mean = Column(Float)
     production_std = Column(Float)
+    production_min = Column(Float)
+    production_max = Column(Float)
+    production_p25 = Column(Float)
+    production_p50 = Column(Float)
+    production_p75 = Column(Float)
+
+    # Covariate drift — numeric features
+    start_hour_mean = Column(Float)
+    start_hour_std = Column(Float)
+    end_hour_mean = Column(Float)
+    end_hour_std = Column(Float)
+    day_of_year_mean = Column(Float)
+    day_of_year_std = Column(Float)
+
+    # Covariate drift — categorical features (share of total rows, %)
     solar_percentage = Column(Float)
+    wind_percentage = Column(Float)
+    mixed_percentage = Column(Float)
+    spring_percentage = Column(Float)
+    summer_percentage = Column(Float)
+    fall_percentage = Column(Float)
+    winter_percentage = Column(Float)
+
+    # Concept drift — mean Production conditioned on energy source
+    solar_production_mean = Column(Float)
+    wind_production_mean = Column(Float)
+    mixed_production_mean = Column(Float)
+
+
+class DriftStatistic(Base):
+    """
+    Stores statistics computed from incoming data batches.
+    Grafana compares these against TrainingStatistic baselines to visualise drift.
+    """
+    __tablename__ = "drift_statistics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    check_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    source_file = Column(String, index=True)
+    row_count = Column(Integer)
+
+    # Target drift — Production distribution
+    production_mean = Column(Float)
+    production_std = Column(Float)
+    production_min = Column(Float)
+    production_max = Column(Float)
+    production_p25 = Column(Float)
+    production_p50 = Column(Float)
+    production_p75 = Column(Float)
+
+    # Covariate drift — numeric features
+    start_hour_mean = Column(Float)
+    start_hour_std = Column(Float)
+    end_hour_mean = Column(Float)
+    end_hour_std = Column(Float)
+    day_of_year_mean = Column(Float)
+    day_of_year_std = Column(Float)
+
+    # Covariate drift — categorical features (share of total rows, %)
+    solar_percentage = Column(Float)
+    wind_percentage = Column(Float)
+    mixed_percentage = Column(Float)
+    spring_percentage = Column(Float)
+    summer_percentage = Column(Float)
+    fall_percentage = Column(Float)
+    winter_percentage = Column(Float)
+
+    # Concept drift — mean Production conditioned on energy source
+    solar_production_mean = Column(Float)
+    wind_production_mean = Column(Float)
+    mixed_production_mean = Column(Float)
 
 
 # --- Database Operations ---
