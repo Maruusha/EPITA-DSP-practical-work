@@ -20,6 +20,7 @@ def clear_batch_results():
     if "batch_result_df" in st.session_state:
         st.session_state["batch_result_df"] = None
 
+
 def show_api_error(error_message, exception=None):
     st.error("Something went wrong while calling the prediction service. Please try again.")
 
@@ -29,9 +30,9 @@ def show_api_error(error_message, exception=None):
         else:
             st.write(error_message)
 
+
 def run_prediction(payload):
     """Calls API and returns a dataframe of predictions."""
-    
     with st.spinner("Calling prediction service..."):
         results = make_prediction(payload)
 
@@ -51,7 +52,7 @@ def run_prediction(payload):
     if "received_input" not in result_df.columns:
         st.error("Invalid API response format.")
         return None
-    
+
     # flatten received_input
     input_df = pd.json_normalize(result_df["received_input"])
 
@@ -68,10 +69,10 @@ def run_prediction(payload):
     input_df["Model Version"] = result_df["model_version"]
 
     # Arrange columns in nice order
-    result_df = input_df[
-        ["Date", "Start hour", "End hour", "Energy Source",
-        "Predicted Production (MWh)", "Model Version"]
-    ]        
+    result_df = input_df[[
+        "Date", "Start hour", "End hour", "Energy Source",
+        "Predicted Production (MWh)", "Model Version"
+    ]]
 
     return result_df
 
@@ -111,7 +112,7 @@ with tab_single:
     # Click on Predict button
     if st.button("Predict", type="primary"):
 
-        # Validation 
+        # Validation
         if start_hour >= end_hour:
             st.error("End hour must be greater than start hour.")
         else:

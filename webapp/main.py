@@ -1,5 +1,4 @@
 import streamlit as st
-# Import the new function from your teammate's file
 from services.api_client import check_health
 
 # 1. Setup
@@ -10,28 +9,30 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- NEW: Auto-Refreshing System Status Sidebar ---
+
+# --- Auto-Refreshing System Status Sidebar ---
 @st.fragment(run_every="20s")
 def live_health_check():
     st.markdown("---")
     st.markdown("### System Status")
-    
+
     # Call the helper function from client.py
     health = check_health()
-    
+
     if health["status"] == "online":
         st.success("🟢 API: Online")
     elif health["status"] == "error":
         st.error(f"🔴 API: Error {health['code']}")
     else:
         st.error("🔴 API: Offline")
-        
+
     st.caption("Status updates automatically every 20s.")
+
 
 # We call the fragment INSIDE a sidebar context manager
 with st.sidebar:
     live_health_check()
-# ----------------------------------
+
 
 # 2. Define the "Main" logic in a function
 def show_main_content():
@@ -46,6 +47,7 @@ def show_main_content():
     """)
 
     st.info("Select a page from the navigation menu on the left.")
+
 
 # 3. Define Page objects
 main_page = st.Page(show_main_content, title="Main", default=True)

@@ -10,9 +10,11 @@ if "past_result_df" not in st.session_state:
 if "last_query_params" not in st.session_state:
     st.session_state["last_query_params"] = None
 
+
 # -----Helper Functions-----
 def clear_past_results():
     st.session_state["past_result_df"] = None
+
 
 def show_api_error(error_message, exception=None):
     st.error("Something went wrong while fetching the past predictions. Please try again.")
@@ -22,6 +24,7 @@ def show_api_error(error_message, exception=None):
             st.exception(exception)
         else:
             st.write(error_message)
+
 
 # -----Page UI-----
 st.title("Past Predictions")
@@ -82,7 +85,7 @@ if st.session_state["last_query_params"] != query_params:
 # Retrieve Predictions button
 if st.button("Retrieve Predictions", type="primary"):
 
-    try: 
+    try:
         if start_datetime > end_datetime:
             clear_past_results()
             st.error("Start date must be before end date.")
@@ -122,10 +125,11 @@ if st.button("Retrieve Predictions", type="primary"):
                         input_df["Model Version"] = result_df["model_version"]
 
                         # Make sure column order
-                        input_df = input_df[
-                            ["Prediction Run Date", "Date", "Start hour", "End hour", "Energy Source",
-                            "Prediction Source", "Predicted Production (MWh)", "Model Version"]
-                            ]
+                        input_df = input_df[[
+                            "Prediction Run Date", "Date", "Start hour", "End hour",
+                            "Energy Source", "Prediction Source",
+                            "Predicted Production (MWh)", "Model Version"
+                        ]]
                         st.session_state["past_result_df"] = input_df
     except Exception as e:
         clear_past_results()
@@ -134,7 +138,7 @@ if st.button("Retrieve Predictions", type="primary"):
         with st.expander("Show error details"):
             st.exception(e)
 
-# Display result      
+# Display result
 if st.session_state["past_result_df"] is not None:
 
     df = st.session_state["past_result_df"]
