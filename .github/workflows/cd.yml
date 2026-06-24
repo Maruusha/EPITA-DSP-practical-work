@@ -27,14 +27,22 @@ jobs:
           fi
           echo "latest=$latest" >> $GITHUB_OUTPUT
 
-      - name: Bump minor version
+      - name: Bump version
         id: bump_version
         run: |
           latest="${{ steps.get_tag.outputs.latest }}"
           version="${latest#v}"
           major=$(echo $version | cut -d. -f1)
           minor=$(echo $version | cut -d. -f2)
-          new_tag="v${major}.$((minor + 1)).0"
+          patch=$(echo $version | cut -d. -f3)
+          commits=$(git log $latest..HEAD --pretty=format:"%s")
+          if echo "$commits" | grep -iq '\[major\]'; then
+            new_tag="v$((major + 1)).0.0"
+          elif echo "$commits" | grep -iq '\[minor\]'; then
+            new_tag="v${major}.$((minor + 1)).0"
+          else
+            new_tag="v${major}.${minor}.$((patch + 1))"
+          fi
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
