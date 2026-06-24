@@ -21,3 +21,4 @@ class DataValClass(BaseModel):
     total_rows: int = 0
     error_count: int = 0
     error_rate: float = 0
+    error_details: List[Dict] = []  # per-expectation breakdown: type, column, row indices

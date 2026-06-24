@@ -13,7 +13,10 @@ import great_expectations.expectations as gxe
 import requests
 
 from DataValClass import DataValClass
-from validation_utils import compute_criticality, compute_error_stats, split_records
+from validation_utils import (
+    compute_criticality, compute_error_stats, split_records,
+    detect_type_errors, EXPECTATION_CATEGORY_MAP, get_failing_indices
+)
 
 # Reference lists for validation
 VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -76,13 +79,19 @@ def ingestion_validate_data():
         payload = DataValClass(**data_to_ingest)
         df = pd.DataFrame(payload.records)
 
+        # Snapshot before coercion so detect_type_errors can see original string values
+        df_raw = df.copy()
+
         # Convert columns
+        numeric_cols = ['Start_Hour', 'End_Hour', 'Day_of_Year', 'Production']
         if 'Date' in df.columns:
             df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%Y', errors='coerce')
-        numeric_cols = ['Start_Hour', 'End_Hour', 'Day_of_Year', 'Production']
         for col in numeric_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        # Pre-coercion type error detection: non-null values that fail type parsing
+        type_error_map = detect_type_errors(df_raw, numeric_cols, 'Date')
 
         context = gx.get_context()
         suite_name = "dsp_validation_suite"
@@ -141,7 +150,6 @@ def ingestion_validate_data():
             gx.Checkpoint(
                 name=checkpoint_name,
                 validation_definitions=[validation_definition],
-                result_format={"result_format": "COMPLETE"}
             )
         )
         checkpoint_result = checkpoint.run(batch_parameters={"dataframe": df})
@@ -149,16 +157,52 @@ def ingestion_validate_data():
 
         logging.warning("Result" + str(results))
         bad_indices = set()
+        error_details = []
         payload.is_schema_valid = True
         for r in results.results:
             if not r.success:
-                indices = r.result.get('unexpected_index_list', [])
+                indices = get_failing_indices(df, r)
                 bad_indices.update(indices)
+                exp_type = r.expectation_config.type
+                kwargs = getattr(r.expectation_config, 'kwargs', {}) or {}
+                col = kwargs.get('column')
+                category = EXPECTATION_CATEGORY_MAP.get(exp_type, exp_type)
+
+                if exp_type == "expect_column_values_to_not_be_null" and col in type_error_map:
+                    # Split null-check failures: non-null-but-unparseable = type, rest = completeness
+                    type_idx = type_error_map[col]
+                    completeness_idx = set(indices) - type_idx
+                    if type_idx:
+                        error_details.append({
+                            "expectation_type": "type_check",
+                            "error_category": "type",
+                            "column_name": col,
+                            "row_count": len(type_idx),
+                            "row_numbers": sorted(type_idx),
+                        })
+                    if completeness_idx:
+                        error_details.append({
+                            "expectation_type": exp_type,
+                            "error_category": "completeness",
+                            "column_name": col,
+                            "row_count": len(completeness_idx),
+                            "row_numbers": sorted(completeness_idx),
+                        })
+                else:
+                    error_details.append({
+                        "expectation_type": exp_type,
+                        "error_category": category,
+                        "column_name": col,
+                        "row_count": len(indices),
+                        "row_numbers": list(indices),
+                    })
+
             if r.expectation_config.type == "expect_table_columns_to_match_set":
                 payload.is_schema_valid = r.success
                 if not r.success:
                     payload.schema_missing_column = list(set(COLUMNS) - set(df.columns.tolist()))
                     payload.schema_missing_column_count = len(payload.schema_missing_column)
+        payload.error_details = error_details
 
         payload.error_count, payload.error_rate = compute_error_stats(
             bad_indices, payload.total_rows, payload.is_schema_valid
@@ -184,51 +228,65 @@ def ingestion_validate_data():
     # Sending error stats to db
     @task
     def save_statistics(data_to_ingest: dict) -> None:
+        import json
         if not data_to_ingest:
             logging.info("No data received. Skipping database insert.")
             return
 
-        # Extract fields from the DataValClass dictionary
         file_name = data_to_ingest.get('source_filename', 'unknown_file')
         total_rows = data_to_ingest.get('total_rows', 0)
         error_count = data_to_ingest.get('error_count', 0)
         error_rate = data_to_ingest.get('error_rate', 0.0)
         is_schema_valid = data_to_ingest.get('is_schema_valid', True)
         error_criticality = data_to_ingest.get('error_criticality', 'None')
+        error_details = data_to_ingest.get('error_details', [])
 
         logging.info(f"Connecting to Postgres to save stats for {file_name}")
 
         try:
-            # Connecting to PostgreSQL using Airflow's secure hook
             hook = PostgresHook(postgres_conn_id='postgres_default')
 
-            # The SQL Insert matching your new database columns
-            insert_sql = """
+            insert_stat_sql = """
                 INSERT INTO data_quality_stats (
                     file_name, total_rows, error_count, error_rate,
                     is_schema_valid, error_criticality, ingestion_timestamp
                 ) VALUES (
                     %(file_name)s, %(total_rows)s, %(error_count)s, %(error_rate)s,
                     %(is_schema_valid)s, %(error_criticality)s, CURRENT_TIMESTAMP
-                );
+                ) RETURNING id;
             """
-
-            # Map the Python variables to the SQL command
-            params = {
+            stat_params = {
                 "file_name": file_name,
                 "total_rows": total_rows,
                 "error_count": error_count,
                 "error_rate": error_rate,
                 "is_schema_valid": is_schema_valid,
-                "error_criticality": error_criticality
+                "error_criticality": error_criticality,
             }
+            stat_id = hook.run(insert_stat_sql, parameters=stat_params, handler=lambda cur: cur.fetchone()[0])
+            logging.info(f"Saved data quality stats (id={stat_id}) for {file_name}.")
 
-            # Upload to db
-            hook.run(insert_sql, parameters=params)
-            logging.info(f"Successfully saved data quality stats for {file_name} to PostgreSQL.")
+            if error_details and stat_id:
+                insert_error_sql = """
+                    INSERT INTO data_quality_errors (
+                        stat_id, error_category, expectation_type, column_name, row_count, row_numbers
+                    ) VALUES (
+                        %(stat_id)s, %(error_category)s, %(expectation_type)s, %(column_name)s,
+                        %(row_count)s, %(row_numbers)s
+                    );
+                """
+                for detail in error_details:
+                    hook.run(insert_error_sql, parameters={
+                        "stat_id": stat_id,
+                        "error_category": detail.get("error_category"),
+                        "expectation_type": detail.get("expectation_type"),
+                        "column_name": detail.get("column_name"),
+                        "row_count": detail.get("row_count", 0),
+                        "row_numbers": json.dumps(detail.get("row_numbers", [])),
+                    })
+                logging.info(f"Saved {len(error_details)} error detail rows for stat_id={stat_id}.")
 
         except Exception as e:
-            # This will show up in bright red in the Airflow task logs
             logging.error(f"Failed to save stats to database. Error: {str(e)}")
             raise
 

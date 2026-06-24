@@ -14,6 +14,12 @@ def make_prediction(payload: dict):
         )
         response.raise_for_status()
         return response.json()
+    except requests.exceptions.HTTPError as e:
+        try:
+            detail = response.json()
+        except Exception:
+            detail = response.text
+        return {"error": f"{e} — {detail}"}
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
 
