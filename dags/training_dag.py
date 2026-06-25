@@ -266,25 +266,60 @@ def ml_training_pipeline():
         client = MlflowClient()
 
         if not eval_info["should_promote"]:
-            logger.warning("Candidate failed to beat Champion. Skipping promotion.")
+            candidate_rmsle = eval_info["candidate_rmsle"]
+            champion_rmsle = eval_info["champion_rmsle"]
+            reason = (
+                f"Candidate RMSLE ({candidate_rmsle:.4f}) did not improve on "
+                f"Champion RMSLE ({champion_rmsle:.4f})."
+            )
+            logger.warning(f"Promotion failed: {reason}")
 
-            # Safe Variable get for Airflow 3 SDK
+            # Log comparison results to MLflow on the existing run
+            with mlflow.start_run(run_id=eval_info["run_id"]):
+                mlflow.set_tag("promotion_status", "rejected")
+                mlflow.set_tag("promotion_reason", reason)
+                mlflow.log_metric("champion_rmsle_at_evaluation", champion_rmsle)
+
+            # Send Adaptive Card alert to Teams (same pattern as ingestion_validate_data.py)
             try:
                 webhook_url = Variable.get("teams_webhook")
-            except Exception:
-                webhook_url = None
-
-            if webhook_url:
                 payload = {
-                    "@type": "MessageCard",
-                    "themeColor": "FF0000",
-                    "title": "ML Model Promotion Failed",
-                    "text": (
-                        f"Candidate RMSLE ({eval_info['candidate_rmsle']:.4f}) "
-                        f"was worse than Champion ({eval_info['champion_rmsle']:.4f})."
-                    ),
+                    "type": "message",
+                    "attachments": [
+                        {
+                            "contentType": "application/vnd.microsoft.card.adaptive",
+                            "content": {
+                                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                "type": "AdaptiveCard",
+                                "version": "1.4",
+                                "body": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "🚨 ML Model Promotion Failed",
+                                        "weight": "Bolder",
+                                        "size": "Medium",
+                                        "color": "Attention"
+                                    },
+                                    {
+                                        "type": "FactSet",
+                                        "facts": [
+                                            {"title": "Reason", "value": "Candidate did not beat Champion on RMSLE"},
+                                            {"title": "Candidate RMSLE", "value": f"{candidate_rmsle:.4f}"},
+                                            {"title": "Champion RMSLE", "value": f"{champion_rmsle:.4f}"},
+                                            {"title": "Model", "value": MODEL_NAME},
+                                            {"title": "MLflow Run ID", "value": eval_info["run_id"]},
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
                 }
-                requests.post(webhook_url, json=payload)
+                response = requests.post(webhook_url, json=payload)
+                response.raise_for_status()
+                logger.info("Teams alert sent for failed promotion.")
+            except Exception as e:
+                logger.error(f"Failed to send Teams alert: {e}")
 
             raise AirflowSkipException("Candidate model rejected.")
 
