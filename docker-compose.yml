@@ -100,6 +100,7 @@ services:
 
 
   airflow-apiserver:
+  
     <<: *airflow-common
     container_name: airflow-apiserver
     command: >
@@ -115,6 +116,7 @@ services:
     restart: always
     environment:
       - AIRFLOW_VAR_TEAMS_WEBHOOK=${AIRFLOW_TEAMS_WEBHOOK_URL}
+      - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://user:password@db:5432/predictions_db
     depends_on:
       airflow-init:
         condition: service_completed_successfully
