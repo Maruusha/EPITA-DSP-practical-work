@@ -15,6 +15,8 @@ x-airflow-common:
     - ./data/bad_data:/opt/airflow/data/bad_data
     - ./data/raw_data:/opt/airflow/data/raw_data
     - ./data/archived_data:/opt/airflow/data/archived_data
+    - ./data/drift_data:/opt/airflow/data/drift_data
+    - ./mlflow-artifacts:/mlflow/artifacts
   user: "${AIRFLOW_UID}:0"
 
 services:
@@ -34,18 +36,37 @@ services:
       retries: 5
     volumes:
       - postgres-db-volume:/var/lib/postgresql
-      
+
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.11.3
+    container_name: mlflow_server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow-artifacts:/mlflow/artifacts
+    command: >
+      mlflow server 
+      --backend-store-uri sqlite:////mlflow/artifacts/mlflow.db 
+      --default-artifact-root /mlflow/artifacts 
+      --host 0.0.0.0
+    restart: always
+
+
   fastapi:
     build: ./model_service
     image: tiagolow/fastapi
     container_name: fastapi
     ports:
       - "8080:80"
+    volumes:
+      - ./mlflow-artifacts:/mlflow/artifacts  # <--- ADD THIS LINE TO MOUNT THE SHARED TRACKING FOLDER
     env_file:
       - .env
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - AIRFLOW_DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@host:5432/${AIRFLOW_DB_NAME}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
     depends_on:
       db:
         condition: service_healthy
@@ -68,7 +89,18 @@ services:
         condition: service_started
 
 
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-gx-docs
+    ports:
+      - "8090:80"
+    volumes:
+      - ./gx/uncommitted/data_docs/local_site:/usr/share/nginx/html:ro
+    restart: always
+
+
   airflow-apiserver:
+  
     <<: *airflow-common
     container_name: airflow-apiserver
     command: >
@@ -84,6 +116,7 @@ services:
     restart: always
     environment:
       - AIRFLOW_VAR_TEAMS_WEBHOOK=${AIRFLOW_TEAMS_WEBHOOK_URL}
+      - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://user:password@db:5432/predictions_db
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -136,9 +169,11 @@ services:
       - -c
       - |
         mkdir -p /opt/airflow/{logs,dags}
+        mkdir -p /mlflow/artifacts
         /entrypoint airflow config list >/dev/null
         chown -R "${AIRFLOW_UID}:0" /opt/airflow/
         chown -v -R "${AIRFLOW_UID}:0" /opt/airflow/{logs,dags}
+        chown -v -R "${AIRFLOW_UID}:0" /mlflow
 
     environment:      
       _AIRFLOW_DB_MIGRATE: 'true'
@@ -166,6 +201,22 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:12.4.5
+    env_file:
+      - .env 
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - TEAMS_WEBHOOK_URL=${AIRFLOW_TEAMS_WEBHOOK_URL}
+      - GF_FEATURE_TOGGLES_ENABLE=dashboardNewLayouts
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/grafana_data:/var/lib/grafana
 volumes:
   postgres-db-volume:

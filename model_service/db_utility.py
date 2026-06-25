@@ -11,19 +11,40 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
 class Base(DeclarativeBase):
     pass
 
+
 # --- Table Definitions ---
+
 
 class EnergySource(Base):
     __tablename__ = "energy_sources"
     id = Column(Integer, primary_key=True)
-    source_type = Column(String, unique = True, nullable = False)  # Solar, Wind, Mix, etc.
+    source_type = Column(String, unique=True, nullable=False)  # Solar, Wind, Mix, etc.
+
+
+class InputData(Base):
+    """Stores the full feature vector seen at inference time — the basis for drift detection."""
+    __tablename__ = "input_data"
+    id = Column(Integer, primary_key=True, index=True)
+    energy_source_id = Column(Integer, ForeignKey("energy_sources.id"), nullable=False)
+    input_date = Column(DateTime, nullable=False)
+    start_hour = Column(Integer, nullable=False)
+    end_hour = Column(Integer, nullable=False)
+    day_of_year = Column(Integer, nullable=False)
+    day_name = Column(String, nullable=False)
+    month_name = Column(String, nullable=False)
+    season = Column(String, nullable=False)
+    ingested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
 
 class PredictionRecord(Base):
     __tablename__ = "predictions"
     id = Column(Integer, primary_key=True, index=True)
+    input_id = Column(Integer, ForeignKey("input_data.id"), nullable=False)
     energy_source_id = Column(Integer, ForeignKey("energy_sources.id"))
     prediction_source = Column(String)
     input_date = Column(DateTime)
@@ -33,18 +54,19 @@ class PredictionRecord(Base):
     predict_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     ml_model = Column(String)
 
+
 class DataQualityStat(Base):
     __tablename__ = "data_quality_stats"
-    
+
     # The Primary Key
     id = Column(Integer, primary_key=True, index=True)
-    
+
     # File name column
     file_name = Column(String, index=True)
-    
+
     # Time-Series Tracking column
     ingestion_timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
+
     # additional info about the bad dataset
     total_rows = Column(Integer)
     error_count = Column(Integer)
@@ -52,7 +74,109 @@ class DataQualityStat(Base):
     is_schema_valid = Column(Boolean)
     error_criticality = Column(String)
 
+
+class DataQualityError(Base):
+    __tablename__ = "data_quality_errors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    stat_id = Column(Integer, ForeignKey("data_quality_stats.id"), nullable=False)
+    error_category = Column(String)     # completeness | type | validity | range_violation | schema
+    expectation_type = Column(String)   # raw GX expectation name, e.g. "expect_column_values_to_not_be_null"
+    column_name = Column(String)        # column that failed, null for table-level checks
+    row_count = Column(Integer)         # number of failing rows
+    row_numbers = Column(String)        # JSON-encoded list of failing row indices
+
+
+class TrainingStatistic(Base):
+    """
+    Stores baseline statistics from each promoted model's training dataset.
+    Covers target, covariate, and concept drift baselines for Grafana.
+    """
+    __tablename__ = "training_statistics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    run_id = Column(String, index=True, nullable=False)
+    training_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    row_count = Column(Integer)
+
+    # Target drift — Production distribution
+    production_mean = Column(Float)
+    production_std = Column(Float)
+    production_min = Column(Float)
+    production_max = Column(Float)
+    production_p25 = Column(Float)
+    production_p50 = Column(Float)
+    production_p75 = Column(Float)
+
+    # Covariate drift — numeric features
+    start_hour_mean = Column(Float)
+    start_hour_std = Column(Float)
+    end_hour_mean = Column(Float)
+    end_hour_std = Column(Float)
+    day_of_year_mean = Column(Float)
+    day_of_year_std = Column(Float)
+
+    # Covariate drift — categorical features (share of total rows, %)
+    solar_percentage = Column(Float)
+    wind_percentage = Column(Float)
+    mixed_percentage = Column(Float)
+    spring_percentage = Column(Float)
+    summer_percentage = Column(Float)
+    fall_percentage = Column(Float)
+    winter_percentage = Column(Float)
+
+    # Concept drift — mean Production conditioned on energy source
+    solar_production_mean = Column(Float)
+    wind_production_mean = Column(Float)
+    mixed_production_mean = Column(Float)
+
+
+class DriftStatistic(Base):
+    """
+    Stores statistics computed from incoming data batches.
+    Grafana compares these against TrainingStatistic baselines to visualise drift.
+    """
+    __tablename__ = "drift_statistics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    check_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    source_file = Column(String, index=True)
+    row_count = Column(Integer)
+
+    # Target drift — Production distribution
+    production_mean = Column(Float)
+    production_std = Column(Float)
+    production_min = Column(Float)
+    production_max = Column(Float)
+    production_p25 = Column(Float)
+    production_p50 = Column(Float)
+    production_p75 = Column(Float)
+
+    # Covariate drift — numeric features
+    start_hour_mean = Column(Float)
+    start_hour_std = Column(Float)
+    end_hour_mean = Column(Float)
+    end_hour_std = Column(Float)
+    day_of_year_mean = Column(Float)
+    day_of_year_std = Column(Float)
+
+    # Covariate drift — categorical features (share of total rows, %)
+    solar_percentage = Column(Float)
+    wind_percentage = Column(Float)
+    mixed_percentage = Column(Float)
+    spring_percentage = Column(Float)
+    summer_percentage = Column(Float)
+    fall_percentage = Column(Float)
+    winter_percentage = Column(Float)
+
+    # Concept drift — mean Production conditioned on energy source
+    solar_production_mean = Column(Float)
+    wind_production_mean = Column(Float)
+    mixed_production_mean = Column(Float)
+
+
 # --- Database Operations ---
+
 
 def get_db():
     db = SessionLocal()
@@ -60,6 +184,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 def test_db_connection():
     try:
@@ -69,17 +194,38 @@ def test_db_connection():
     except Exception:
         return False
 
-def save_predictions_batch(db: Session, records_data: list):
+
+def save_input_and_predictions_batch(db: Session, input_records: list, prediction_records: list):
+    """
+    Saves input features and predictions in one transaction.
+    input_records and prediction_records must be the same length and in matching order.
+    Each prediction gets linked to its corresponding input row via input_id.
+    """
+    if len(input_records) != len(prediction_records):
+        raise ValueError("input_records and prediction_records must have the same length")
     try:
-        db_records = [PredictionRecord(**data) for data in records_data]
-        db.add_all(db_records)
+        # Insert input_data rows first to get their IDs
+        db_inputs = [InputData(**data) for data in input_records]
+        db.add_all(db_inputs)
+        db.flush()  # assigns IDs without committing
+
+        # Link each prediction to its input row
+        db_predictions = []
+        for input_row, pred_data in zip(db_inputs, prediction_records):
+            pred_data["input_id"] = input_row.id
+            db_predictions.append(PredictionRecord(**pred_data))
+
+        db.add_all(db_predictions)
         db.commit()
-    except:
+    except Exception:
         db.rollback()
         raise
 
 
-def query_predictions(db: Session, ml_model=None, prediction_source=None,energy_source_id=None, start_date=None, end_date=None, limit=100):
+def query_predictions(
+    db: Session, ml_model=None, prediction_source=None,
+    energy_source_id=None, start_date=None, end_date=None, limit=100
+):
     query = db.query(PredictionRecord)
     if ml_model is not None:
         query = query.filter(PredictionRecord.ml_model == ml_model)
@@ -91,16 +237,16 @@ def query_predictions(db: Session, ml_model=None, prediction_source=None,energy_
         query = query.filter(PredictionRecord.predict_date >= start_date)
     if end_date is not None:
         query = query.filter(PredictionRecord.predict_date <= end_date)
-    
+
     return query.order_by(PredictionRecord.predict_date.desc()).limit(limit).all()
-   
-        
+
+
 def get_all_energy_sources(db: Session):
     return db.query(EnergySource).all()
 
- 
+
 def create_database_if_not_exists(db_url):
-    db_name = db_url.rsplit("/", 1)[-1] 
+    db_name = db_url.rsplit("/", 1)[-1]
     engine = create_engine(DATABASE_URL)
 
     with engine.connect() as conn:

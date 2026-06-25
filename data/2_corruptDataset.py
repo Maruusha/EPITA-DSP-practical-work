@@ -14,7 +14,7 @@ dataset_path = os.path.join(base_dir, 'raw_data')
 output_folder = os.path.join(base_dir, 'raw_data')
 os.makedirs(output_folder, exist_ok=True)
 
-ERROR_PERCENTAGE = 0.15  # min 0 max 1
+ERROR_PERCENTAGE = 0.15  # min 0 max 1s
 
 # Define the possible error types (excluding Schema which is File-level)
 row_error_types = ['completeness', 'validity', 'consistency', 'type', 'impossibleValue', 'outlier']
@@ -55,13 +55,15 @@ for file_name in os.listdir(dataset_path):
             elif error == 'type':
                 df[target_col] = df[target_col].astype(object)
                 df.at[idx, target_col] = "xyz"
-
+                
             elif error == 'impossibleValue':
+                df['Production'] = df['Production'].astype(object)
                 df.at[idx, 'Production'] = -100
                 df.at[idx, 'Date'] = two_years_from_now
-
+ 
             elif error == 'outlier':
-                df.at[idx, 'Production'] = 40000 
+                df['Production'] = df['Production'].astype(object)
+                df.at[idx, 'Production'] = 40000
 
     # SHUFFLE THE ROWS
     df = df.sample(frac=1).reset_index(drop=True)

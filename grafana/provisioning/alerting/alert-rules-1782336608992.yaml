@@ -1,0 +1,561 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: ML_Drift
+      folder: alert_rules
+      interval: 30m
+      rules:
+        - uid: ffq4yw0xsa0aoa
+          title: 'Energy Source Change (Concept Drift) '
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 32772
+                to: 11172
+              datasourceUid: PCC52D03280B7034C
+              model:
+                dataset: predictions_db
+                datasource:
+                    type: grafana-postgresql-datasource
+                    uid: PCC52D03280B7034C
+                editorMode: code
+                format: table
+                instant: false
+                intervalMs: 60000
+                maxDataPoints: 43200
+                range: true
+                rawQuery: true
+                rawSql: "WITH latest_drift AS (\r\n  SELECT * FROM drift_statistics ORDER BY check_date DESC LIMIT 1\r\n),\r\nlatest_baseline AS (\r\n  SELECT * FROM training_statistics ORDER BY training_date DESC LIMIT 1\r\n)\r\nSELECT\r\n  NOW() AS time,\r\n  GREATEST(\r\n    ABS(d.solar_production_mean - b.solar_production_mean) / NULLIF(b.solar_production_mean, 0) * 100,\r\n    ABS(d.wind_production_mean - b.wind_production_mean) / NULLIF(b.wind_production_mean, 0) * 100,\r\n    ABS(d.mixed_production_mean - b.mixed_production_mean) / NULLIF(b.mixed_production_mean, 0) * 100\r\n  ) AS max_drift_pct\r\nFROM latest_drift d, latest_baseline b;"
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 20
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: adwfg5r
+          panelId: 10
+          noDataState: NoData
+          execErrState: Error
+          for: 30m
+          annotations:
+            __dashboardUid__: adwfg5r
+            __panelId__: "10"
+            summary: Concept Drift Detected. Please refer to the dashboard for more details
+          isPaused: false
+          notification_settings:
+            receiver: prod-alerts
+        - uid: dfq4zjhan5vy8d
+          title: Target Drift (%)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 33442
+                to: 11842
+              datasourceUid: PCC52D03280B7034C
+              model:
+                dataset: predictions_db
+                datasource:
+                    type: grafana-postgresql-datasource
+                    uid: PCC52D03280B7034C
+                editorMode: code
+                format: table
+                instant: false
+                intervalMs: 60000
+                maxDataPoints: 43200
+                range: true
+                rawQuery: true
+                rawSql: "WITH latest_drift AS (SELECT * FROM drift_statistics ORDER BY check_date DESC LIMIT 1),\r\nlatest_baseline AS (SELECT * FROM training_statistics ORDER BY training_date DESC LIMIT 1)\r\nSELECT\r\n  ROUND(CAST(ABS(d.production_mean - b.production_mean) / NULLIF(b.production_mean, 0) * 100 AS numeric), 2) AS \"Target Drift (%)\"\r\nFROM latest_drift d, latest_baseline b;\r\n"
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 20
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: adwfg5r
+          panelId: 9
+          noDataState: NoData
+          execErrState: Error
+          for: 30m
+          annotations:
+            __dashboardUid__: adwfg5r
+            __panelId__: "9"
+            summary: Target Drift detected. Please refer to dashboard for more details
+          isPaused: false
+          notification_settings:
+            receiver: prod-alerts
+        - uid: bfq4zqsu207i8f
+          title: Hour Change (Covariate Drift)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 33509
+                to: 11909
+              datasourceUid: PCC52D03280B7034C
+              model:
+                dataset: predictions_db
+                datasource:
+                    type: grafana-postgresql-datasource
+                    uid: PCC52D03280B7034C
+                editorMode: code
+                format: table
+                instant: false
+                intervalMs: 60000
+                maxDataPoints: 43200
+                range: true
+                rawQuery: true
+                rawSql: "WITH latest_drift AS (\r\n  SELECT * FROM drift_statistics ORDER BY check_date DESC LIMIT 1\r\n),\r\nlatest_baseline AS (\r\n  SELECT * FROM training_statistics ORDER BY training_date DESC LIMIT 1\r\n)\r\nSELECT\r\n  NOW() AS time,\r\n  GREATEST(\r\n    ABS(d.start_hour_mean - b.start_hour_mean) / NULLIF(b.start_hour_std, 0),\r\n    ABS(d.end_hour_mean - b.end_hour_mean) / NULLIF(b.end_hour_std, 0)\r\n  ) AS max_z_score\r\nFROM latest_drift d, latest_baseline b;"
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 3
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: adwfg5r
+          panelId: 6
+          noDataState: NoData
+          execErrState: Error
+          for: 30m
+          annotations:
+            __dashboardUid__: adwfg5r
+            __panelId__: "6"
+            summary: Covariate Drift (Hour) detected. Please refer to dashboard for more details
+          isPaused: false
+          notification_settings:
+            receiver: prod-alerts
+        - uid: bfq4zx2wd6ry8c
+          title: Energy Source Change (Covariate Drift)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 33643
+                to: 12043
+              datasourceUid: PCC52D03280B7034C
+              model:
+                dataset: predictions_db
+                datasource:
+                    type: grafana-postgresql-datasource
+                    uid: PCC52D03280B7034C
+                editorMode: code
+                format: table
+                instant: false
+                intervalMs: 60000
+                maxDataPoints: 43200
+                range: true
+                rawQuery: true
+                rawSql: "WITH latest_drift AS (\r\n  SELECT * FROM drift_statistics ORDER BY check_date DESC LIMIT 1\r\n),\r\nlatest_baseline AS (\r\n  SELECT * FROM training_statistics ORDER BY training_date DESC LIMIT 1\r\n)\r\nSELECT\r\n  NOW() AS time,\r\n  GREATEST(\r\n    ABS(d.solar_percentage - b.solar_percentage),\r\n    ABS(d.wind_percentage - b.wind_percentage),\r\n    ABS(d.mixed_percentage - b.mixed_percentage)\r\n  ) AS max_source_drift_pct\r\nFROM latest_drift d, latest_baseline b;"
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 20
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: adwfg5r
+          panelId: 7
+          noDataState: NoData
+          execErrState: Error
+          for: 30m
+          annotations:
+            __dashboardUid__: adwfg5r
+            __panelId__: "7"
+            summary: Covariate Drift (Energy Source) detected. Please refer to dashboard for more details
+          isPaused: false
+          notification_settings:
+            receiver: prod-alerts
+        - uid: efq50crrbl14wc
+          title: Season Drift
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 33788
+                to: 12188
+              datasourceUid: PCC52D03280B7034C
+              model:
+                dataset: predictions_db
+                datasource:
+                    type: grafana-postgresql-datasource
+                    uid: PCC52D03280B7034C
+                editorMode: code
+                format: table
+                instant: false
+                intervalMs: 60000
+                maxDataPoints: 43200
+                range: true
+                rawQuery: true
+                rawSql: "WITH latest_drift AS (\r\n  SELECT * FROM drift_statistics ORDER BY check_date DESC LIMIT 1\r\n),\r\nlatest_baseline AS (\r\n  SELECT * FROM training_statistics ORDER BY training_date DESC LIMIT 1\r\n)\r\nSELECT\r\n  NOW() AS time,\r\n  GREATEST(\r\n    ABS(d.spring_percentage - b.spring_percentage),\r\n    ABS(d.summer_percentage - b.summer_percentage),\r\n    ABS(d.fall_percentage - b.fall_percentage),\r\n    ABS(d.winter_percentage - b.winter_percentage)\r\n  ) AS max_season_drift_pct\r\nFROM latest_drift d, latest_baseline b;"
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 20
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: adwfg5r
+          panelId: 8
+          noDataState: NoData
+          execErrState: Error
+          for: 30m
+          annotations:
+            __dashboardUid__: adwfg5r
+            __panelId__: "8"
+            summary: Covariate Drift (Season) detected. Please refer to dashboard for more details
+          isPaused: false
+          notification_settings:
+            receiver: prod-alerts
+
+    - orgId: 1
+      name: Data_Quality
+      folder: alert_rules
+      interval: 1m
+      rules:
+        - uid: dq-high-error-rate-001
+          title: High Error Rate Alert
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 300
+                to: 0
+              datasourceUid: PCC52D03280B7034C
+              model:
+                dataset: predictions_db
+                datasource:
+                    type: grafana-postgresql-datasource
+                    uid: PCC52D03280B7034C
+                editorMode: code
+                format: table
+                instant: true
+                intervalMs: 60000
+                maxDataPoints: 43200
+                range: false
+                rawQuery: true
+                rawSql: "SELECT SUM(error_count) AS total_errors FROM data_quality_stats WHERE ingestion_timestamp >= NOW() - INTERVAL '5 minutes'"
+                refId: A
+                sql:
+                    columns:
+                        - parameters: []
+                          type: function
+                    groupBy:
+                        - property:
+                            type: string
+                          type: groupBy
+                    limit: 50
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 0s
+          annotations:
+            summary: Data Quality Alert - High error rate detected in ingested data
+          isPaused: false
+          notification_settings:
+            receiver: prod-alerts
