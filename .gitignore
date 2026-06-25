@@ -226,3 +226,4 @@ gx/
 
 mlflow-artifacts/
 /tmp/airflow_temp/
+grafana/grafana_data/
