@@ -3,6 +3,7 @@ import pickle
 import os
 import pandas as pd
 from abc import ABC, abstractmethod
+from datetime import datetime
 import mlflow
 import mlflow.pyfunc
 
@@ -26,20 +27,23 @@ class TempModel(EnergyModel):
 
 class RealModel(EnergyModel):
     def __init__(self):
-        # Consistent Version Naming for Local Fallback
-        self.version = "Local-Baseline-v3.0"
-
         model_paths = ["baseline_model.pkl", "model_service/baseline_model.pkl"]
         self.model = None
+        found_path = None
 
         for path in model_paths:
             if os.path.exists(path):
                 with open(path, "rb") as f:
                     self.model = pickle.load(f)
+                found_path = path
                 break
 
         if self.model is None:
             raise FileNotFoundError("Could not locate baseline_model.pkl!")
+
+        mtime = datetime.fromtimestamp(os.path.getmtime(found_path)).strftime("%Y%m%d-%H%M%S")
+        self.version = f"Local-Baseline-{mtime}"
+        
 
     def predict(self, features: dict) -> float:
         date_obj = features['date']
@@ -84,7 +88,7 @@ class MLflowChampionModel(EnergyModel):
     Loads the promoted @champion model directly from the MLflow Model Registry.
     """
     def __init__(self):
-        mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
+        mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow_server:5000")
         mlflow.set_tracking_uri(mlflow_uri)
 
         model_uri = "models:/RenewableEnergyModel@champion"
@@ -92,11 +96,9 @@ class MLflowChampionModel(EnergyModel):
 
         self.model = mlflow.pyfunc.load_model(model_uri)
 
-        # Consistent Version Naming for Production
-        # Prefixes 'MLflow-Prod-' and grabs the short 8-character hash of the run_id.
-        # This keeps database rows clean while staying completely traceable.
-        raw_run_id = self.model.metadata.run_id
-        self.version = f"MLflow-Prod-{raw_run_id[:8]}"
+        client = mlflow.MlflowClient()
+        mv = client.get_model_version_by_alias("RenewableEnergyModel", "champion")
+        self.version = f"MLflow-Prod-v{mv.version}"
 
     def predict(self, features: dict) -> float:
         date_obj = features['date']
