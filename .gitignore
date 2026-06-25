@@ -226,3 +226,6 @@ dags/logs/
 /dags/logs/
 
 gx/
+demo_files/
+**/.DS_Store
+grafana/dashboards/dashboard-*.json.bak

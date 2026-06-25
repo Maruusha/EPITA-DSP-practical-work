@@ -1,4 +1,3 @@
-
 x-airflow-common:
   &airflow-common
   build:
@@ -7,6 +6,8 @@ x-airflow-common:
   image: airflow:latest
   env_file:
     - .env
+  environment:
+    - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://user:password@db:5432/predictions_db
   volumes:
     - ./gx:/opt/airflow/gx
     - ./dags:/opt/airflow/dags
@@ -84,6 +85,7 @@ services:
     restart: always
     environment:
       - AIRFLOW_VAR_TEAMS_WEBHOOK=${AIRFLOW_TEAMS_WEBHOOK_URL}
+      - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://user:password@db:5432/predictions_db
     depends_on:
       airflow-init:
         condition: service_completed_successfully

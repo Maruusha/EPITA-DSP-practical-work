@@ -11,7 +11,6 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 import great_expectations as gx
 import great_expectations.expectations as gxe
 import requests
-import logging
 
 from DataValClass import DataValClass
 
@@ -19,21 +18,31 @@ from DataValClass import DataValClass
 VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 VALID_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 VALID_SEASONS = ['Spring', 'Summer', 'Fall', 'Winter']
-VALID_SOURCES = ['Wind', 'Solar', 'Mixed'] 
+VALID_SOURCES = ['Wind', 'Solar', 'Mixed']
 COLUMNS = ['Date', 'Start_Hour', 'End_Hour', 'Source', 'Day_of_Year', 'Day_Name', 'Month_Name', 'Season', 'Production']
+
+# Map GX expectation types to error categories
+EXPECTATION_CATEGORY_MAP = {
+    'expect_column_values_to_not_be_null': 'completeness',
+    'expect_column_values_to_be_between': 'validity',
+    'expect_column_values_to_be_in_set': 'consistency',
+    'expect_column_values_to_be_of_type': 'type',
+    'expect_table_columns_to_match_set': 'schema',
+    'expect_column_to_exist': 'schema',
+}
 
 @dag(
     dag_id='ingestion_validate_data_v1',
     description='Ingest data from a file in raw_data folder, validate and process it',
     tags=['dsp', 'data_ingestion', 'ingestion_validate_data'],
     schedule="*/5 * * * *",
-    start_date=datetime(2026, 1, 1),  # sets the starting point of the DAG
-    max_active_runs=1,  # Ensure only one active run at a time
+    start_date=datetime(2026, 1, 1),
+    max_active_runs=1,
     catchup=False
 )
 def ingestion_validate_data():
     @task
-    def read_data() -> dict:    
+    def read_data() -> dict:
         folderpath = '/opt/airflow/data/raw_data/'
         csv_files = [f for f in os.listdir(folderpath) if f.endswith('.csv')]
         if csv_files:
@@ -41,28 +50,25 @@ def ingestion_validate_data():
             full_path = os.path.join(folderpath, filename)
 
             data_to_ingest_df = pd.read_csv(full_path, dtype=str)
-            # prevent serialization errors
             data_to_ingest_df = data_to_ingest_df.astype(object).fillna('nan_value')
             df_row_len = data_to_ingest_df.shape[0]
             logging.warning(f'Extract {df_row_len} rows from the file {filename}')
 
-            # Delete the file
             os.remove(full_path)
 
-            # Handle empty file
             if df_row_len < 1:
                 raise AirflowSkipException("File empty!!")
-            
+
             data_obj = DataValClass(
-                        records=data_to_ingest_df.to_dict(orient="records"),
-                        source_filename=filename,
-                        is_processed=False,
-                        total_rows=len(data_to_ingest_df)
-                    )
-            dump =data_obj.model_dump() 
-            logging.warning("Created the data_obj"+str(dump))
+                records=data_to_ingest_df.to_dict(orient="records"),
+                source_filename=filename,
+                is_processed=False,
+                total_rows=len(data_to_ingest_df)
+            )
+            dump = data_obj.model_dump()
+            logging.warning("Created the data_obj" + str(dump))
             return dump
-        else: 
+        else:
             logging.warning("No CSV files found in raw_data folder. Skipping run.")
             raise AirflowSkipException("No file found!!")
 
@@ -70,9 +76,9 @@ def ingestion_validate_data():
     def validate_data(data_to_ingest: dict) -> dict:
         if not data_to_ingest:
             return {}
-        
+
         payload = DataValClass(**data_to_ingest)
-        df = pd.DataFrame(payload.records) 
+        df = pd.DataFrame(payload.records)
 
         # Convert columns
         if 'Date' in df.columns:
@@ -80,7 +86,7 @@ def ingestion_validate_data():
         numeric_cols = ['Start_Hour', 'End_Hour', 'Day_of_Year', 'Production']
         for col in numeric_cols:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')   
+                df[col] = pd.to_numeric(df[col], errors='coerce')
 
         context = gx.get_context()
         suite_name = "dsp_validation_suite"
@@ -119,7 +125,6 @@ def ingestion_validate_data():
             batch_definition = asset.add_batch_definition_whole_dataframe("my_batch")
             logging.info(f"Created new Batch Definition")
 
-        # ValidationDefinition - delete and recreate
         try:
             context.validation_definitions.delete("my_validation")
         except:
@@ -132,32 +137,65 @@ def ingestion_validate_data():
             )
         )
 
-        checkpoint_name = f"checkpoint_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}"
+        checkpoint_name = f"checkpoint_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}"
         checkpoint = context.checkpoints.add(
             gx.Checkpoint(
                 name=checkpoint_name,
                 validation_definitions=[validation_definition],
-                result_format={"result_format": "COMPLETE"}  
+                result_format={"result_format": "COMPLETE"}
             )
         )
         checkpoint_result = checkpoint.run(batch_parameters={"dataframe": df})
         results = list(checkpoint_result.run_results.values())[0]
 
-        logging.warning("Result"+str(results))
+        logging.warning("Result" + str(results))
+
         bad_indices = set()
-        payload.is_schema_valid = True      
+        payload.is_schema_valid = True
+
+        # Per-category tracking using sets of row indices
+        completeness_indices = set()
+        validity_indices = set()
+        consistency_indices = set()
+        type_indices = set()
+
         for r in results.results:
+            exp_type = r.expectation_config.type
+            category = EXPECTATION_CATEGORY_MAP.get(exp_type, 'other')
+
             if not r.success:
                 indices = r.result.get('unexpected_index_list', [])
                 bad_indices.update(indices)
-            if r.expectation_config.type == "expect_table_columns_to_match_set":
+
+                if category == 'completeness':
+                    completeness_indices.update(indices)
+                elif category == 'validity':
+                    validity_indices.update(indices)
+                elif category == 'consistency':
+                    consistency_indices.update(indices)
+                elif category == 'type':
+                    type_indices.update(indices)
+                elif category == 'schema':
+                    payload.is_schema_valid = False
+                    payload.schema_missing_column = list(set(COLUMNS) - set(df.columns.tolist()))
+                    payload.schema_missing_column_count = len(payload.schema_missing_column)
+
+            if exp_type == "expect_table_columns_to_match_set":
                 payload.is_schema_valid = r.success
                 if not r.success:
                     payload.schema_missing_column = list(set(COLUMNS) - set(df.columns.tolist()))
                     payload.schema_missing_column_count = len(payload.schema_missing_column)
 
+        # Set category counts
+        payload.missing_values_count = len(completeness_indices)
+        payload.outlier_error_count = len(validity_indices)
+        payload.consistency_error_count = len(consistency_indices)
+        payload.type_error_count = len(type_indices)
+        payload.schema_error_count = 0 if payload.is_schema_valid else 1
+
         payload.error_count = len(bad_indices)
-        payload.error_rate = payload.error_count / payload.total_rows
+        payload.error_rate = payload.error_count / payload.total_rows if payload.total_rows > 0 else 0
+
         if not payload.is_schema_valid:
             payload.error_count = payload.total_rows
             payload.error_rate = 1
@@ -171,10 +209,17 @@ def ingestion_validate_data():
         else:
             payload.error_criticality = "None"
 
+        logging.info(
+            f"Category counts — completeness: {payload.missing_values_count}, "
+            f"validity: {payload.outlier_error_count}, "
+            f"consistency: {payload.consistency_error_count}, "
+            f"type: {payload.type_error_count}, "
+            f"schema: {payload.schema_error_count}"
+        )
+
         # Convert back the cols
         if 'Date' in df.columns:
             df['Date'] = df['Date'].dt.strftime('%-m/%-d/%Y').fillna('invalid_date')
-        # prevent Serialization error
         df = df.astype(object).where(pd.notna(df), None)
 
         payload.is_processed = True
@@ -183,65 +228,75 @@ def ingestion_validate_data():
         if payload.is_schema_valid:
             payload.bad_records = bad_df.to_dict(orient="records")
             payload.good_records = good_df.to_dict(orient="records")
-        else: 
-            # If data has schema error, all data is bad
+        else:
             payload.bad_records = df.to_dict(orient="records")
-        
-         # Generate Data Docs
+
         context.build_data_docs()
         data_docs_sites = context.get_docs_sites_urls()
         report_path = next(site["site_url"] for site in data_docs_sites if site["site_name"] == "local_site")
-        
         payload.report_url = report_path
-        
+
         return payload.model_dump()
 
-    # Sending error stats to db 
     @task
     def save_statistics(data_to_ingest: dict) -> None:
         if not data_to_ingest:
             logging.info("No data received. Skipping database insert.")
             return
 
-        # Extract fields from the DataValClass dictionary
         file_name = data_to_ingest.get('source_filename', 'unknown_file')
         total_rows = data_to_ingest.get('total_rows', 0)
         error_count = data_to_ingest.get('error_count', 0)
         error_rate = data_to_ingest.get('error_rate', 0.0)
         is_schema_valid = data_to_ingest.get('is_schema_valid', True)
         error_criticality = data_to_ingest.get('error_criticality', 'None')
+        missing_values_count = data_to_ingest.get('missing_values_count', 0)
+        type_error_count = data_to_ingest.get('type_error_count', 0)
+        outlier_error_count = data_to_ingest.get('outlier_error_count', 0)
+        consistency_error_count = data_to_ingest.get('consistency_error_count', 0)
+        schema_error_count = data_to_ingest.get('schema_error_count', 0)
 
         logging.info(f"Connecting to Postgres to save stats for {file_name}")
 
         try:
-            # Connecting to PostgreSQL using Airflow's secure hook
             hook = PostgresHook(postgres_conn_id='postgres_default')
 
-            # The SQL Insert matching your new database columns
             insert_sql = """
                 INSERT INTO data_quality_stats (
-                    file_name, total_rows, error_count, error_rate, is_schema_valid, error_criticality, ingestion_timestamp
+                    file_name, total_rows, error_count, error_rate, is_schema_valid, error_criticality,
+                    missing_values_count, type_error_count, outlier_error_count,
+                    consistency_error_count, schema_error_count,
+                    total_rows_processed, total_clean_rows, total_corrupt_rows,
+                    ingestion_timestamp
                 ) VALUES (
-                    %(file_name)s, %(total_rows)s, %(error_count)s, %(error_rate)s, %(is_schema_valid)s, %(error_criticality)s, CURRENT_TIMESTAMP
+                    %(file_name)s, %(total_rows)s, %(error_count)s, %(error_rate)s,
+                    %(is_schema_valid)s, %(error_criticality)s,
+                    %(missing_values_count)s, %(type_error_count)s, %(outlier_error_count)s,
+                    %(consistency_error_count)s, %(schema_error_count)s,
+                    %(total_rows)s, %(total_clean_rows)s, %(error_count)s,
+                    CURRENT_TIMESTAMP
                 );
             """
 
-            # Map the Python variables to the SQL command
             params = {
                 "file_name": file_name,
                 "total_rows": total_rows,
                 "error_count": error_count,
                 "error_rate": error_rate,
                 "is_schema_valid": is_schema_valid,
-                "error_criticality": error_criticality
+                "error_criticality": error_criticality,
+                "missing_values_count": missing_values_count,
+                "type_error_count": type_error_count,
+                "outlier_error_count": outlier_error_count,
+                "consistency_error_count": consistency_error_count,
+                "schema_error_count": schema_error_count,
+                "total_clean_rows": total_rows - error_count,
             }
 
-            # Upload to db
             hook.run(insert_sql, parameters=params)
             logging.info(f"Successfully saved data quality stats for {file_name} to PostgreSQL.")
 
         except Exception as e:
-            # This will show up in bright red in the Airflow task logs
             logging.error(f"Failed to save stats to database. Error: {str(e)}")
             raise
 
@@ -250,11 +305,9 @@ def ingestion_validate_data():
         if not data_to_ingest:
             logging.info("No data received. Skipping alert.")
             return {}
-        
+
         try:
-        
             logging.info("Starting Teams alert task")
-            # Extract values
             severity = data_to_ingest.get("error_criticality", "None")
             error_rate = data_to_ingest.get("error_rate", 0)
             total_rows = data_to_ingest.get("total_rows", 0)
@@ -264,7 +317,6 @@ def ingestion_validate_data():
 
             error_percent = round(error_rate * 100, 2)
 
-            # Skip LOW and NONE alerts
             if severity not in ["High", "Medium"]:
                 logging.info(f"No alert sent (severity={severity})")
                 return
@@ -278,7 +330,6 @@ def ingestion_validate_data():
                 color = "FFA500"
                 title = "Data Quality Alert (Medium)"
 
-            # Retrieve Webhook variable
             webhook_url = Variable.get("teams_webhook")
 
             payload = {
@@ -312,13 +363,12 @@ def ingestion_validate_data():
             logging.error(f"Failed to send Teams alert: {e}")
             raise
 
-
     @task
     def split_and_save_data(data_to_ingest: dict) -> None:
         if not data_to_ingest:
             logging.warning("No data received in split_and_save_data.")
-            return 
-        
+            return
+
         payload = DataValClass(**data_to_ingest)
         good_folder = '/opt/airflow/data/good_data/'
         bad_folder = '/opt/airflow/data/bad_data/'
@@ -332,51 +382,44 @@ def ingestion_validate_data():
             f"schema_missing_column: {payload.schema_missing_column}\n"
             f"error_rate:            {payload.error_rate}\n"
             f"error_criticality:     {payload.error_criticality}\n"
-
             f"total_rows:            {payload.total_rows}\n"
-            f"good_record_count:     {payload.total_rows-payload.error_count}\n"
+            f"good_record_count:     {payload.total_rows - payload.error_count}\n"
             f"bad_record_count:      {payload.error_count}\n"
-            
+            f"missing_values_count:  {payload.missing_values_count}\n"
+            f"type_error_count:      {payload.type_error_count}\n"
+            f"outlier_error_count:   {payload.outlier_error_count}\n"
+            f"consistency_errors:    {payload.consistency_error_count}\n"
+            f"schema_error_count:    {payload.schema_error_count}\n"
         )
 
-        # Save good records to good_data
         if payload.good_records:
-            os.makedirs(good_folder, exist_ok=True) # Ensure folder exists
+            os.makedirs(good_folder, exist_ok=True)
             good_filepath = f"{good_folder}{base_name}_{timestamp}.csv"
             df = pd.DataFrame(payload.good_records)
-            df = df[COLUMNS] # Correct order
+            df = df[COLUMNS]
             df.to_csv(good_filepath, index=False)
             logging.info(f"Successfully saved {len(payload.good_records)} rows to: {good_filepath}")
-            # Write one summary file alongside the CSVs
             summary_filepath = f"{good_folder}{base_name}_{timestamp}.txt"
             with open(summary_filepath, 'w') as f:
                 f.write(summary)
-            logging.info(f"Summary saved to: {summary_filepath}")
         else:
             logging.info("No good records found to save.")
 
-        # Save bad records to bad_data
         if payload.bad_records:
-            os.makedirs(bad_folder, exist_ok=True) # Ensure folder exists     
+            os.makedirs(bad_folder, exist_ok=True)
             bad_filepath = f"{bad_folder}{base_name}_{timestamp}.csv"
-            
             df = pd.DataFrame(payload.bad_records)
-            
-            # Safely filter only columns that exist
             existing_cols = [cols for cols in COLUMNS if cols in df.columns]
-            df = df[existing_cols] 
-            
+            df = df[existing_cols]
             df.to_csv(bad_filepath, index=False)
             logging.warning(f"Saved {len(payload.bad_records)} rows with errors to: {bad_filepath}")
-            # Write one summary file alongside the CSVs
             summary_filepath = f"{bad_folder}{base_name}_{timestamp}.txt"
             with open(summary_filepath, 'w') as f:
                 f.write(summary)
-            logging.info(f"Summary saved to: {summary_filepath}")
         else:
             logging.info("No bad records found. Data is 100% clean.")
 
-    # Task relateionships
+    # Task relationships
     raw_data_to_ingest = read_data()
     file_content = validate_data(raw_data_to_ingest)
     save_statistics(file_content)

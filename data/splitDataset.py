@@ -1,37 +1,27 @@
 import pandas as pd
-import numpy as np
 import os
-
-# save incase needed
-# dataset_path = 'Energy Production Dataset.csv'     
-# output_folder = 'raw_data'       
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 dataset_path = os.path.join(base_dir, 'Energy Production Dataset.csv')
- 
 output_folder = os.path.join(base_dir, 'raw_data')
 os.makedirs(output_folder, exist_ok=True)
 
-num_files = 15               
+num_files = 50  # increase for longer demos (each file = 1 ingestion run)
+ROWS_PER_FILE = 10  # required: exactly 10 rows per file
 
-# Load the dataset
+# Load and shuffle
 df = pd.read_csv(dataset_path)
-
-# Randomly shuffle the entire dataframe
-# frac=1 means take 100% of the data, random_state ensures reproducibility
 df_shuffled = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
-# Split the dataframe into N parts
-# array_split handles cases where the division isn't even
-chunks = np.array_split(df_shuffled, num_files)
+# Take only what we need (num_files * 10 rows)
+df_trimmed = df_shuffled.head(num_files * ROWS_PER_FILE)
 
-# 4. Save each chunk to the output folder
-original_columns = df_shuffled.columns
-for i, chunk in enumerate(chunks):
+# Split into chunks of exactly 10 rows
+for i in range(num_files):
+    chunk = df_trimmed.iloc[i * ROWS_PER_FILE:(i + 1) * ROWS_PER_FILE]
     file_name = f"split_data_{i+1}.csv"
     file_path = os.path.join(output_folder, file_name)
-    df_chunk = pd.DataFrame(chunk, columns=original_columns)
-    df_chunk.to_csv(file_path, index=False)
+    chunk.to_csv(file_path, index=False)
     print(f"Saved: {file_path} ({len(chunk)} rows)")
 
-print(f"\nSuccessfully split {len(df)} rows into {num_files} files.")
+print(f"\nSuccessfully created {num_files} files with {ROWS_PER_FILE} rows each.")
