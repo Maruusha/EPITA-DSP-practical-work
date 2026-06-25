@@ -1,0 +1,616 @@
+{
+  "apiVersion": "dashboard.grafana.app/v1beta1",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "dq-monitoring",
+    "namespace": "default",
+    "uid": "dq-monitoring-001"
+  },
+  "spec": {
+    "title": "Data Quality Monitoring",
+    "editable": true,
+    "schemaVersion": 39,
+    "tags": [],
+    "timezone": "browser",
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "preload": false,
+    "links": [],
+    "annotations": [],
+    "templating": {
+      "list": []
+    },
+    "time": {
+      "from": "now-3h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "uid": "dq-monitoring-001",
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Errors (Last Hour)",
+        "type": "stat",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "orange",
+                  "value": 10
+                },
+                {
+                  "color": "red",
+                  "value": 25
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "auto"
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT SUM(error_count) AS total_errors FROM data_quality_stats ",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Error By Severity",
+        "type": "barchart",
+        "gridPos": {
+          "h": 6,
+          "w": 8,
+          "x": 6,
+          "y": 0
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "orange",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            },
+            "custom": {
+              "fillOpacity": 80,
+              "lineWidth": 1
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "barWidth": 0.7,
+          "groupWidth": 0.7,
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "orientation": "auto",
+          "showValue": "auto",
+          "stacking": "none",
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT error_criticality, SUM(error_count) AS error_count FROM data_quality_stats GROUP BY error_criticality ORDER BY error_criticality",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Count Over Time",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 6,
+          "w": 10,
+          "x": 14,
+          "y": 0
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "lineWidth": 1,
+              "pointSize": 5,
+              "showPoints": "auto",
+              "spanNulls": false
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT ingestion_timestamp AS time, error_count FROM data_quality_stats ORDER BY ingestion_timestamp ASC",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Error Rate Trend (%)",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 6
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "lineWidth": 1,
+              "pointSize": 5,
+              "showPoints": "auto",
+              "spanNulls": false
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "orange",
+                  "value": 10
+                },
+                {
+                  "color": "red",
+                  "value": 50
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT ingestion_timestamp AS time, ROUND(CAST(error_rate * 100 AS numeric), 2) AS error_rate FROM data_quality_stats ORDER BY ingestion_timestamp ASC",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Clean vs Corrupt Rows Over Time",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 6
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "lineWidth": 1,
+              "pointSize": 5,
+              "showPoints": "auto",
+              "spanNulls": false
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT ingestion_timestamp AS time, (total_rows - error_count) AS clean_rows, error_count AS corrupt_rows FROM data_quality_stats ORDER BY ingestion_timestamp ASC",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Error Rate Per Ingestion",
+        "type": "table",
+        "gridPos": {
+          "h": 8,
+          "w": 14,
+          "x": 0,
+          "y": 14
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "footer": {
+                "reducers": []
+              },
+              "inspect": false
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "orange",
+                  "value": 10
+                },
+                {
+                  "color": "red",
+                  "value": 50
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "cellHeight": "sm",
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT ingestion_timestamp, file_name, total_rows, error_count, ROUND(CAST(error_rate * 100 AS numeric), 2) AS error_rate, error_criticality, is_schema_valid FROM data_quality_stats ORDER BY ingestion_timestamp DESC",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Schema Errors Alert",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 10,
+          "x": 14,
+          "y": 14
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "lineWidth": 1,
+              "pointSize": 5,
+              "showPoints": "auto",
+              "spanNulls": false
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT ingestion_timestamp AS time, CASE WHEN is_schema_valid = false THEN 1 ELSE 0 END AS schema_error FROM data_quality_stats ORDER BY ingestion_timestamp ASC",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Full Error Details (data_quality_errors)",
+        "type": "table",
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 22
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "footer": {
+                "reducers": []
+              },
+              "inspect": false
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "cellHeight": "sm",
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT s.ingestion_timestamp, s.file_name, s.error_criticality, s.total_rows, s.error_count, e.error_category, e.column_name, e.row_count, e.expectation_type FROM data_quality_errors e JOIN data_quality_stats s ON e.stat_id = s.id  ORDER BY s.ingestion_timestamp DESC",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Data Quality Stats (data_quality_stats)",
+        "type": "table",
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 31
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PCC52D03280B7034C"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "footer": {
+                "reducers": []
+              },
+              "inspect": false
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "orange",
+                  "value": 10
+                },
+                {
+                  "color": "red",
+                  "value": 50
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "cellHeight": "sm",
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "dataset": "predictions_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "PCC52D03280B7034C"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT id, ingestion_timestamp, file_name, total_rows, error_count, ROUND(CAST(error_rate * 100 AS numeric), 2) AS error_rate, error_criticality, is_schema_valid FROM data_quality_stats ORDER BY ingestion_timestamp DESC",
+            "refId": "A"
+          }
+        ]
+      }
+    ]
+  }
+}
