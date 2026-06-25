@@ -1,21 +1,39 @@
 """
 Airflow DAG for Data Drift Detection.
 
-Reads CSV files from the drift_data directory, computes the same set of statistics
-used in training_statistics (target, covariate, concept), and stores each batch
-in the drift_statistics table for Grafana comparison.
+Aggregates all new CSV files from good_data (newer than the last processed
+ingestion timestamp) into one batch, computes target/covariate/concept drift
+statistics, and stores a single record in drift_statistics for Grafana comparison.
+
+A batch is eligible when it contains at least 800 rows in total.
 """
 
 import os
+import re
 import logging
 import pandas as pd
 from datetime import datetime
+from typing import Optional
 
-from airflow.sdk import dag, task
+from airflow.sdk import dag, task, Variable
 from airflow.exceptions import AirflowSkipException
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-DRIFT_DATA_DIR = "/opt/airflow/data/drift_data/"
+GOOD_DATA_DIR = "/opt/airflow/data/good_data/"
+MIN_ROWS_FOR_DRIFT = 800
+WATERMARK_VAR = "drift_last_ingestion_ts"
+
+_FILENAME_TS_RE = re.compile(r"_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.csv$")
+
+
+def _parse_file_timestamp(filename: str) -> Optional[datetime]:
+    match = _FILENAME_TS_RE.search(filename)
+    if not match:
+        return None
+    try:
+        return datetime.strptime(match.group(1), "%Y-%m-%d_%H-%M-%S")
+    except ValueError:
+        return None
 
 
 def _compute_stats(df: pd.DataFrame) -> dict:
@@ -95,50 +113,100 @@ INSERT_SQL = """
 def drift_detection_pipeline():
 
     @task
-    def scan_drift_files() -> list:
+    def scan_good_files() -> dict:
         logger = logging.getLogger("airflow.task")
-        os.makedirs(DRIFT_DATA_DIR, exist_ok=True)
-        files = [f for f in os.listdir(DRIFT_DATA_DIR) if f.endswith(".csv")]
-        if not files:
-            raise AirflowSkipException("No CSV files found in drift_data directory.")
-        logger.info(f"Found {len(files)} drift file(s): {files}")
-        return files
+
+        # Determine cutoff timestamp
+        watermark = Variable.get(WATERMARK_VAR, default_var=None)
+        if watermark:
+            cutoff = datetime.strptime(watermark, "%Y-%m-%d_%H-%M-%S")
+            logger.info(f"Using watermark as cutoff: {cutoff}")
+        else:
+            hook = PostgresHook(postgres_conn_id="postgres_default")
+            row = hook.get_first("SELECT MAX(training_date) FROM training_statistics;")
+            training_date = row[0] if row and row[0] else None
+            if training_date is None:
+                raise AirflowSkipException("No watermark and no training baseline found. Run training first.")
+            if hasattr(training_date, "tzinfo") and training_date.tzinfo is not None:
+                training_date = training_date.replace(tzinfo=None)
+            cutoff = training_date
+            logger.info(f"No watermark found. Using training_date as cutoff: {cutoff}")
+
+        os.makedirs(GOOD_DATA_DIR, exist_ok=True)
+        candidates = []
+        max_ts = None
+
+        for filename in os.listdir(GOOD_DATA_DIR):
+            if not filename.endswith(".csv"):
+                continue
+            file_ts = _parse_file_timestamp(filename)
+            if file_ts is None:
+                logger.warning(f"Cannot parse timestamp from '{filename}', skipping.")
+                continue
+            if file_ts <= cutoff:
+                continue
+            candidates.append(filename)
+            if max_ts is None or file_ts > max_ts:
+                max_ts = file_ts
+
+        if not candidates:
+            raise AirflowSkipException("No new files found in good_data directory.")
+
+        logger.info(f"Found {len(candidates)} candidate file(s): {candidates}")
+        return {
+            "files": candidates,
+            "max_ts": max_ts.strftime("%Y-%m-%d_%H-%M-%S"),
+        }
 
     @task
-    def compute_and_store_stats(filenames: list):
+    def compute_and_store_stats(scan_result: dict):
         logger = logging.getLogger("airflow.task")
-        hook = PostgresHook(postgres_conn_id="postgres_default")
+        filenames = scan_result["files"]
 
+        df_list = []
         for filename in filenames:
-            filepath = os.path.join(DRIFT_DATA_DIR, filename)
-            try:
-                df = pd.read_csv(filepath)
-                if df.empty:
-                    logger.warning(f"Skipping empty file: {filename}")
-                    continue
+            filepath = os.path.join(GOOD_DATA_DIR, filename)
+            df_list.append(pd.read_csv(filepath))
 
-                stats = _compute_stats(df)
-                hook.run(INSERT_SQL, parameters=(
-                    datetime.now(), filename, stats["row_count"],
-                    stats["production_mean"], stats["production_std"],
-                    stats["production_min"], stats["production_max"],
-                    stats["production_p25"], stats["production_p50"], stats["production_p75"],
-                    stats["start_hour_mean"], stats["start_hour_std"],
-                    stats["end_hour_mean"], stats["end_hour_std"],
-                    stats["day_of_year_mean"], stats["day_of_year_std"],
-                    stats["solar_percentage"], stats["wind_percentage"], stats["mixed_percentage"],
-                    stats["spring_percentage"], stats["summer_percentage"],
-                    stats["fall_percentage"], stats["winter_percentage"],
-                    stats["solar_production_mean"], stats["wind_production_mean"],
-                    stats["mixed_production_mean"],
-                ))
-                logger.info(f"Stored drift stats for '{filename}' ({stats['row_count']} rows).")
-            except Exception as e:
-                logger.error(f"Failed to process '{filename}': {e}")
-                raise
+        combined_df = pd.concat(df_list, ignore_index=True)
+        total_rows = len(combined_df)
 
-    files = scan_drift_files()
-    compute_and_store_stats(files)
+        if total_rows < MIN_ROWS_FOR_DRIFT:
+            raise AirflowSkipException(
+                f"Only {total_rows} rows across {len(filenames)} file(s). "
+                f"Minimum {MIN_ROWS_FOR_DRIFT} required."
+            )
+
+        logger.info(f"Aggregated {total_rows} rows from {len(filenames)} file(s).")
+
+        stats = _compute_stats(combined_df)
+        batch_label = f"batch_{scan_result['max_ts']}"
+
+        hook = PostgresHook(postgres_conn_id="postgres_default")
+        hook.run(INSERT_SQL, parameters=(
+            datetime.now(), batch_label, stats["row_count"],
+            stats["production_mean"], stats["production_std"],
+            stats["production_min"], stats["production_max"],
+            stats["production_p25"], stats["production_p50"], stats["production_p75"],
+            stats["start_hour_mean"], stats["start_hour_std"],
+            stats["end_hour_mean"], stats["end_hour_std"],
+            stats["day_of_year_mean"], stats["day_of_year_std"],
+            stats["solar_percentage"], stats["wind_percentage"], stats["mixed_percentage"],
+            stats["spring_percentage"], stats["summer_percentage"],
+            stats["fall_percentage"], stats["winter_percentage"],
+            stats["solar_production_mean"], stats["wind_production_mean"],
+            stats["mixed_production_mean"],
+        ))
+        logger.info(f"Stored drift stats for '{batch_label}' ({total_rows} rows).")
+
+    @task
+    def update_watermark(scan_result: dict):
+        Variable.set(WATERMARK_VAR, scan_result["max_ts"])
+        logger = logging.getLogger("airflow.task")
+        logger.info(f"Updated watermark to {scan_result['max_ts']}")
+
+    scan_result = scan_good_files()
+    compute_and_store_stats(scan_result) >> update_watermark(scan_result)
 
 
 drift_detection_job = drift_detection_pipeline()
