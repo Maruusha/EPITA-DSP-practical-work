@@ -100,6 +100,7 @@ services:
 
 
   airflow-apiserver:
+  
     <<: *airflow-common
     container_name: airflow-apiserver
     command: >
@@ -115,6 +116,7 @@ services:
     restart: always
     environment:
       - AIRFLOW_VAR_TEAMS_WEBHOOK=${AIRFLOW_TEAMS_WEBHOOK_URL}
+      - AIRFLOW_CONN_POSTGRES_DEFAULT=postgresql://user:password@db:5432/predictions_db
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -201,7 +203,7 @@ services:
         condition: service_healthy
   grafana:
     container_name: grafana
-    image: grafana/grafana
+    image: grafana/grafana:12.4.5
     env_file:
       - .env 
     ports:
@@ -211,8 +213,10 @@ services:
         condition: service_healthy
     environment:
       - TEAMS_WEBHOOK_URL=${AIRFLOW_TEAMS_WEBHOOK_URL}
+      - GF_FEATURE_TOGGLES_ENABLE=dashboardNewLayouts
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/var/lib/grafana/dashboards     
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/grafana_data:/var/lib/grafana
 volumes:
   postgres-db-volume:
