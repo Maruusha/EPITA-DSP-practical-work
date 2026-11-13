@@ -2,13 +2,13 @@
 
 **Course:** EPITA Data Science in Production (DSP)
 
-A production-grade MLOps platform for renewable energy forecasting. The system automates data ingestion and validation, trains and promotes machine learning models via MLflow, serves predictions through a FastAPI backend, and provides a Streamlit interface for manual and batch predictions.
+# A production-grade MLOps platform for renewable energy forecasting. The system automates data ingestion and validation, trains and promotes machine learning models via MLflow, serves predictions through a FastAPI backend, and provides a Streamlit interface for manual and batch predictions. &lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
 
 ![Project architecture](project-architecture.png)
 
 ## Table of Contents
 
-- [🌬️☀️ Renewable Energy Production Prediction](#️️-renewable-energy-production-prediction)
+- [🌬️☀️ Renewable Energy Production Prediction](#%EF%B8%8F%EF%B8%8F-renewable-energy-production-prediction)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Prerequisites](#prerequisites)
@@ -21,7 +21,7 @@ A production-grade MLOps platform for renewable energy forecasting. The system a
     - [2. Build the containers](#2-build-the-containers)
     - [3. Start the stack](#3-start-the-stack)
   - [Access the Services](#access-the-services)
-  - [Verify Database \& Tables](#verify-database--tables)
+  - [Verify Database & Tables](#verify-database--tables)
     - [Option 1: Use Docker Compose](#option-1-use-docker-compose)
     - [Option 2: Use the container name directly](#option-2-use-the-container-name-directly)
   - [Stopping the Project](#stopping-the-project)
@@ -124,7 +124,7 @@ docker compose up -d
 ## Access the Services
 
 | Service | URL | Notes |
-|---|---|---|
+| --- | --- | --- |
 | Streamlit UI | http://localhost:8501 | Predict energy and upload batch CSV files |
 | Airflow Web UI | http://localhost:8081 | User: `airflow`, Password: `airflow` |
 | FastAPI docs | http://localhost:8080/docs | API documentation and prediction endpoints |
@@ -149,18 +149,23 @@ Check the main tables:
 ```bash
 docker compose exec db psql -U user -d predictions_db -c "SELECT * FROM energy_sources LIMIT 10;"
 ```
+
 ```bash
 docker compose exec db psql -U user -d predictions_db -c "SELECT * FROM predictions ORDER BY predict_date DESC LIMIT 10;"
 ```
+
 ```bash
 docker compose exec db psql -U user -d predictions_db -c "SELECT * FROM data_quality_stats ORDER BY ingestion_timestamp DESC LIMIT 10;"
 ```
+
 ```bash
 docker compose exec db psql -U user -d predictions_db -c "SELECT * FROM training_statistics ORDER BY id DESC LIMIT 10;"
 ```
+
 ```bash
 docker compose exec db psql -U user -d predictions_db -c "SELECT * FROM input_data ORDER BY id DESC LIMIT 10;"
 ```
+
 ```bash
 docker compose exec db psql -U user -d predictions_db -c "SELECT * FROM drift_statistics ORDER BY check_date DESC LIMIT 10;"
 ```
@@ -176,6 +181,7 @@ Then inspect saved rows:
 ```bash
 docker exec -it postgres psql -U user -d predictions_db -c "SELECT * FROM predictions ORDER BY predict_date DESC LIMIT 10;"
 ```
+
 ```bash
 docker exec -it postgres psql -U user -d predictions_db -c "SELECT * FROM data_quality_stats ORDER BY ingestion_timestamp DESC LIMIT 10;"
 ```
@@ -196,7 +202,7 @@ If entries exist in `predictions` and `data_quality_stats`, the project is savin
 ## Stopping the Project
 
 | Command | Stops Containers? | Removes Containers? | Removes Networks? | Removes Volumes? |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `docker compose stop` | ✅ Yes | ❌ No | ❌ No | ❌ No |
 | `docker compose down` | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
 | `docker compose down -v` | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
@@ -264,7 +270,7 @@ Aggregates all good data (requires 500+ rows), trains a RandomForest pipeline (O
 Automatically creates a GitHub Release and bumps the version based on commit message keywords:
 
 | Keyword in commit message | Version bump |
-|---|---|
+| --- | --- |
 | `[major]` (case-insensitive) | `v1.3.2` → `v2.0.0` |
 | `[minor]` (case-insensitive) | `v1.3.2` → `v1.4.0` |
 | *(no keyword)* | `v1.3.2` → `v1.3.3` |
@@ -277,5 +283,5 @@ Automatically creates a GitHub Release and bumps the version based on commit mes
 - The FastAPI service loads the MLflow `@champion` model on startup and falls back to `baseline_model.pkl` if MLflow is unavailable. The active model version is included in every prediction response.
 - Predictions and validation metadata are stored in PostgreSQL.
 - Input features are logged to `input_data` at inference time to support future data drift analysis.
-- Teams webhook alerts are sent for High criticality (error rate > 50% or invalid schema) and Medium criticality (error rate 10–50%).
-- If the Docker stack is running, local Python installation is only required for model training or development.
+- Teams webhook alerts are sent for High criticality (error rate &gt; 50% or invalid schema) and Medium criticality (error rate 10–50%).
+- If the Docker stack is running, local Python installation is only required for model training or development.s
