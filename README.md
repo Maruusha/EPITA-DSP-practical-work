@@ -4,6 +4,8 @@
 
 A production-grade MLOps platform for renewable energy forecasting. The system automates data ingestion and validation, trains and promotes machine learning models via MLflow, serves predictions through a FastAPI backend, and provides a Streamlit interface for manual and batch predictions.
 
+![Project architecture](project-architecture.png)
+
 ## Table of Contents
 
 - [🌬️☀️ Renewable Energy Production Prediction](#️️-renewable-energy-production-prediction)
