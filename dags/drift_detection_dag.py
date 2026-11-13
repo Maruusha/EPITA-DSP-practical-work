@@ -104,7 +104,7 @@ INSERT_SQL = """
 @dag(
     dag_id="drift_detection_v1",
     description="Compute and store drift statistics from incoming data batches",
-    schedule="@daily",
+    schedule="*/5 * * * *", 
     start_date=datetime(2026, 1, 1),
     max_active_runs=1,
     catchup=False,
@@ -117,7 +117,7 @@ def drift_detection_pipeline():
         logger = logging.getLogger("airflow.task")
 
         # Determine cutoff timestamp
-        watermark = Variable.get(WATERMARK_VAR, default_var=None)
+        watermark = Variable.get(WATERMARK_VAR, default=None)
         if watermark:
             cutoff = datetime.strptime(watermark, "%Y-%m-%d_%H-%M-%S")
             logger.info(f"Using watermark as cutoff: {cutoff}")
