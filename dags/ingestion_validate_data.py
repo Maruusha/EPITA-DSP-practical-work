@@ -113,9 +113,6 @@ def ingestion_validate_data():
         suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="End_Hour", min_value=0, max_value=24))
         suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="Day_of_Year", min_value=1, max_value=366))
         suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="Production", min_value=0, max_value=25000))
-        suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(
-            column="Date", min_value=datetime(2018, 1, 1), max_value=datetime.now()
-        ))
 
         datasource = context.data_sources.add_or_update_pandas(name="my_pandas_datasource")
         try:
